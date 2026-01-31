@@ -12,16 +12,17 @@ inductive False : Prop
 def False.elim {b : Sort u} (false : False) : b :=
   false.rec
 
-example (false : False): b := False.elim false
+example (false : False) : b := False.elim false
+example (false : False) : b := false.elim
 
 def Not (a : Prop) : Prop := a → False
 
 def absurd {a : Prop} {b : Sort v} (ha : a) (Not_a : Not a) : b :=
-  have false: False := Not_a ha
-  have res: b := False.elim false
+  have false : False := Not_a ha
+  have res : b := false.elim
   res
 
-example (ha: a) (Not_a : Not a) : b := absurd ha Not_a
+example (ha : a) (Not_a : Not a) : b := absurd ha Not_a
 
 def id {α : Sort u} (a : α) : α := a
 
@@ -47,10 +48,10 @@ theorem Eq.subst {α : Sort u} {motive : α → Prop} {a b : α} (Eq_ab : Eq a b
   Eq.ndrec motive_a Eq_ab
 
 theorem Eq.symm {α : Sort u} {a b : α} (Eq_ab : Eq a b) : Eq b a :=
-  have Eq_aa: Eq a a := Eq.refl a
+  have Eq_aa : Eq a a := Eq.refl a
   Eq.subst (motive := fun x => Eq x a) Eq_ab Eq_aa
 
-example (Eq_ab: Eq a b): Eq b a := Eq.symm Eq_ab
+example (Eq_ab: Eq a b): Eq b a := Eq_ab.symm
 
 theorem Eq.trans {α : Sort u} {a b c : α} (Eq_ab : Eq a b) (Eq_bc : Eq b c) : Eq a c :=
   Eq.subst (motive := fun x => Eq a x) Eq_bc Eq_ab
@@ -58,7 +59,7 @@ theorem Eq.trans {α : Sort u} {a b c : α} (Eq_ab : Eq a b) (Eq_bc : Eq b c) : 
 example (Eq_ab : Eq a b) (Eq_bc : Eq b c) : Eq a c := Eq.trans Eq_ab Eq_bc
 
 theorem congrArg {α : Sort u} {β : Sort v} {a b : α} (f : α → β) (Eq_ab: Eq a b) : Eq (f a) (f b) :=
-  have Eq_fa_fa: Eq (f a) (f a) := Eq.refl (f a)
+  have Eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
   Eq.subst (motive := fun x => Eq (f a) (f x)) Eq_ab Eq_fa_fa
 
 example (f : α → β) (Eq_ab: Eq a b) : Eq (f a) (f b) := congrArg f Eq_ab
@@ -74,3 +75,18 @@ theorem congr {α : Sort u} {β : Sort v} {f g : α → β} {a b : α} (Eq_fg : 
   Eq.subst (motive := fun x => Eq (f a) (x b)) Eq_fg Eq_fa_fb
 
 example {f g : α → β} (Eq_fg : Eq f g) (Eq_ab : Eq a b) : Eq (f a) (g b) := congr Eq_fg Eq_ab
+
+structure And (a b : Prop) : Prop where
+  intro ::
+  left : a
+  right : b
+
+example (ha : a) : And a a := And.intro ha ha
+example (ha : a) (hb : b) : And a b := And.intro ha hb
+example (And_ab : And a b) : a := And_ab.left
+example (And_ab : And a b) : b := And_ab.right
+
+theorem And.symmetric (And_ab: And a b) : And b a :=
+  have ha : a := And_ab.left
+  have hb : b := And_ab.right
+  And.intro hb ha
