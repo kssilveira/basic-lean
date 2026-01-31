@@ -17,6 +17,7 @@ def False.elim {b : Sort u} (false : False) : b :=
 
 example (false : False) : b := False.elim false
 example (false : False) : b := false.elim
+example : False → b := fun false => false.elim
 
 def Not (a : Prop) : Prop := a → False
 
@@ -28,6 +29,9 @@ def absurd {a : Prop} {b : Sort v} (ha : a) (Not_a : Not a) : b :=
   res
 
 example (ha : a) (Not_a : Not a) : b := absurd ha Not_a
+example (ha : a) : Not a → b := fun Not_a => absurd ha Not_a
+example : a → Not a → b := fun ha => fun Not_a => absurd ha Not_a
+example : a → Not a → b := fun ha Not_a => absurd ha Not_a
 
 inductive Eq : α → α → Prop where
   | refl (a : α) : Eq a a
@@ -86,7 +90,9 @@ structure And (a b : Prop) : Prop where
 
 example : And True True := And.intro True.intro True.intro
 example (ha : a) : And a a := And.intro ha ha
+example : a → And a a := fun ha => And.intro ha ha
 example (ha : a) (hb : b) : And a b := And.intro ha hb
+example : a → b → And a b := fun ha hb => And.intro ha hb
 example (And_ab : And a b) : a := And_ab.left
 example (And_ab : And a b) : b := And_ab.right
 
@@ -126,3 +132,72 @@ theorem Or.neg_resolve_left (Or_Not_a_b : Or (Not a) b) (ha : a) : b :=
 
 theorem Or.neg_resolve_right (Or_a_Not_b : Or a (Not b)) (hb : b) : a :=
   Or_a_Not_b.elim id (fun Not_b => absurd hb Not_b)
+
+inductive Bool : Type where
+  | false : Bool
+  | true : Bool
+
+theorem eq_false_of_ne_true {b : Bool} (Not_Eq_b_true : Not (Eq b Bool.true)) : Eq b Bool.false :=
+  match b with
+  | Bool.true =>
+    have Eq_true_true : Eq Bool.true Bool.true := Eq.refl Bool.true
+    absurd Eq_true_true Not_Eq_b_true
+  | Bool.false => Eq.refl Bool.false
+
+theorem eq_true_of_ne_false {b : Bool} (Not_Eq_b_false : Not (Eq b Bool.false)) : Eq b Bool.true :=
+  match b with
+  | Bool.true => Eq.refl Bool.true
+  | Bool.false =>
+    have Eq_false_false : Eq Bool.false Bool.false := Eq.refl Bool.false
+    absurd Eq_false_false Not_Eq_b_false
+
+def Eq.ToRoot {a b : Bool} (Eq_ab : Eq a b) : _root_.Eq a b :=
+  match Eq_ab with
+  | Eq.refl a => _root_.Eq.refl a
+
+theorem ne_false_of_eq_true {b : Bool} (Eq_b_true : Eq b Bool.true) : Not (Eq b Bool.false) :=
+  match b with
+  | Bool.true => fun Eq_true_false =>
+    have RootEq_true_false : _root_.Eq Bool.true Bool.false := Eq_true_false.ToRoot
+    Bool.noConfusion RootEq_true_false
+  | Bool.false =>
+    have RootEq_false_true : _root_.Eq Bool.false Bool.true := Eq_b_true.ToRoot
+    Bool.noConfusion RootEq_false_true
+
+theorem ne_true_of_eq_false {b : Bool} (Eq_b_false : Eq b Bool.false) : Not (Eq b Bool.true) :=
+  match b with
+  | Bool.true  =>
+    have RootEq_true_false : _root_.Eq Bool.true Bool.false := Eq_b_false.ToRoot
+    Bool.noConfusion RootEq_true_false
+  | Bool.false => fun Eq_false_true =>
+    have RootEq_false_true : _root_.Eq Bool.false Bool.true := Eq_false_true.ToRoot
+    Bool.noConfusion RootEq_false_true
+
+inductive Nat where
+  | zero : Nat
+  | succ : Nat → Nat
+
+class LE (α : Type u) where
+  le : α → α → Prop
+
+class LT (α : Type u) where
+  lt : α → α → Prop
+
+def GE.ge {α : Type u} [LE α] (a b : α) : Prop := LE.le b a
+
+def GT.gt {α : Type u} [LT α] (a b : α) : Prop := LT.lt b a
+
+def Nat.add (a b : Nat) : Nat :=
+  match b with
+  | Nat.zero   => a
+  | Nat.succ b_minus_1 => Nat.succ (Nat.add a b_minus_1)
+
+def Nat.mul (a b : Nat) : Nat :=
+  match b with
+  | Nat.zero   => Nat.zero
+  | Nat.succ b_minus_1 => Nat.add a (Nat.mul a b_minus_1)
+
+def Nat.pow (a b : Nat) : Nat :=
+  match b with
+  | Nat.zero => Nat.succ Nat.zero
+  | Nat.succ b_minus_1 => Nat.mul a (Nat.pow a b_minus_1)
