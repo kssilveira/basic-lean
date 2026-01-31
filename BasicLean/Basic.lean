@@ -151,27 +151,19 @@ theorem eq_true_of_ne_false {b : Bool} (Not_Eq_b_false : Not (Eq b Bool.false)) 
     have Eq_false_false : Eq Bool.false Bool.false := Eq.refl Bool.false
     absurd Eq_false_false Not_Eq_b_false
 
-def Eq.ToRoot {a b : Bool} (Eq_ab : Eq a b) : _root_.Eq a b :=
+def Eq.Root {a b : Bool} (Eq_ab : Eq a b) : _root_.Eq a b :=
   match Eq_ab with
   | Eq.refl a => _root_.Eq.refl a
 
 theorem ne_false_of_eq_true {b : Bool} (Eq_b_true : Eq b Bool.true) : Not (Eq b Bool.false) :=
   match b with
-  | Bool.true => fun Eq_true_false =>
-    have RootEq_true_false : _root_.Eq Bool.true Bool.false := Eq_true_false.ToRoot
-    Bool.noConfusion RootEq_true_false
-  | Bool.false =>
-    have RootEq_false_true : _root_.Eq Bool.false Bool.true := Eq_b_true.ToRoot
-    Bool.noConfusion RootEq_false_true
+  | Bool.true  => fun Eq_true_false => Bool.noConfusion Eq_true_false.Root
+  | Bool.false => Bool.noConfusion Eq_b_true.Root
 
 theorem ne_true_of_eq_false {b : Bool} (Eq_b_false : Eq b Bool.false) : Not (Eq b Bool.true) :=
   match b with
-  | Bool.true  =>
-    have RootEq_true_false : _root_.Eq Bool.true Bool.false := Eq_b_false.ToRoot
-    Bool.noConfusion RootEq_true_false
-  | Bool.false => fun Eq_false_true =>
-    have RootEq_false_true : _root_.Eq Bool.false Bool.true := Eq_false_true.ToRoot
-    Bool.noConfusion RootEq_false_true
+  | Bool.true  => Bool.noConfusion Eq_b_false.Root
+  | Bool.false => fun Eq_false_true => Bool.noConfusion Eq_false_true.Root
 
 inductive Nat where
   | zero : Nat
