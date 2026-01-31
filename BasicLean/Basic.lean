@@ -61,10 +61,16 @@ theorem congrArg {α : Sort u} {β : Sort v} {a b : α} (f : α → β) (Eq_ab: 
   have Eq_fa_fa: Eq (f a) (f a) := Eq.refl (f a)
   Eq.subst (motive := fun x => Eq (f a) (f x)) Eq_ab Eq_fa_fa
 
+example (f : α → β) (Eq_ab: Eq a b) : Eq (f a) (f b) := congrArg f Eq_ab
+
 theorem congrFun {α : Sort u} {β : α → Sort v} {f g : (x : α) → β x} (Eq_fg : Eq f g) (a : α) : Eq (f a) (g a) :=
   have Eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
   Eq.subst (motive := fun x => Eq (f a) (x a)) Eq_fg Eq_fa_fa
 
+example {f g : α → β} (Eq_fg : Eq f g) (a : α) : Eq (f a) (g a) := congrFun Eq_fg a
+
 theorem congr {α : Sort u} {β : Sort v} {f g : α → β} {a b : α} (Eq_fg : Eq f g) (Eq_ab : Eq a b) : Eq (f a) (g b) :=
   have Eq_fa_fb : Eq (f a) (f b) := congrArg f Eq_ab
   Eq.subst (motive := fun x => Eq (f a) (x b)) Eq_fg Eq_fa_fb
+
+example {f g : α → β} (Eq_fg : Eq f g) (Eq_ab : Eq a b) : Eq (f a) (g b) := congr Eq_fg Eq_ab
