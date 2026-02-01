@@ -7,30 +7,38 @@ noncomputable section
 inductive True : Prop where
   | intro : True
 
+-- ⊢ ⊤
 example : True := True.intro
-example : a → True := fun _ => True.intro
+
+-- ⊢ p → ⊤
+example : p → True := fun _ => True.intro
 
 /- False -/
 
 inductive False : Prop
 
+-- ⊢ ⊥ → ⊥
 example : False → False := fun false => false
 
-def False.elim {b : Sort u} (false : False) : b := false.rec
+def False.elim {p : Sort u} (false : False) : p := false.rec
 
-example (false : False) : b := False.elim false
-example (false : False) : b := false.elim
-example : False → b := fun false => false.elim
+-- ⊥ ⊢ p
+example (false : False) : p := False.elim false
+example (false : False) : p := false.elim
+example : False → p := fun false => false.elim
 
 /- Not -/
 
 def Not (a : Prop) : Prop := a → False
 
+-- ⊢ ¬⊥
 theorem not_false : Not False := fun false => false
 
+-- p ⊢ ¬¬p
 theorem not_not_intro {p : Prop} (hp : p) : Not (Not p) :=
   fun Not_p => Not_p hp
 
+-- ⊢ ¬¬⊤
 example : Not (Not True) := fun Not_true => Not_true True.intro
 example : Not (Not True) := not_not_intro True.intro
 
@@ -39,24 +47,41 @@ theorem mt {a b : Prop} (ab : a → b) (Not_b : Not b) : Not a :=
 
 theorem Not.imp {a b : Prop} (Not_b : Not b) (ab : a → b) : Not a := mt ab Not_b
 
+-- a → b, ¬b ⊢ ¬a
+example (ab : a → b) (Not_b : Not b) : Not a := mt ab Not_b
+
 def absurd {a : Prop} {b : Sort v} (ha : a) (Not_a : Not a) : b :=
   have false : False := Not_a ha
   false.elim
 
 def Not.elim {α : Sort _} (Not_a : Not a) (ha : a) : α := absurd ha Not_a
 
+-- a, ¬a ⊢ b
 example (ha : a) (Not_a : Not a) : b := absurd ha Not_a
+
+-- a ⊢ ¬a → b
 example (ha : a) : Not a → b := fun Not_a => absurd ha Not_a
+
+-- ⊢ a → ¬a → b
 example : a → Not a → b := fun ha => fun Not_a => absurd ha Not_a
 example : a → Not a → b := fun ha Not_a => absurd ha Not_a
 
 theorem Not.intro {a : Prop} (af : a → False) : Not a := af
 
+-- a → ⊥ ⊢ ¬a
+example (af : a → False) : Not a := af
+
 /- Implies -/
 
 theorem imp_intro {α β : Prop} (h : α) : β → α := fun _ => h
 
+-- a ⊢ b → a
+example (ha : a) : b → a := fun _ => ha
+
 theorem imp_imp_imp {a b c d : Prop} (ca : c → a) (bd : b → d) : (a → b) → (c → d) := fun ab => fun hc => bd (ab (ca hc))
+
+-- c → a, b → d ⊢ (a → b) → (c → d)
+example (ca : c → a) (bd : b → d) : (a → b) → (c → d) := imp_imp_imp ca bd
 
 /- And -/
 
@@ -65,12 +90,25 @@ structure And (a b : Prop) : Prop where
   left  : a
   right : b
 
+-- ⊢ ⊤ ∧ ⊤
 example : And True True := And.intro True.intro True.intro
+
+-- a ⊢ a ∧ a
 example (ha : a) : And a a := And.intro ha ha
+
+-- ⊢ a → a ∧ a
 example : a → And a a := fun ha => And.intro ha ha
+
+-- a, b ⊢ a ∧ b
 example (ha : a) (hb : b) : And a b := And.intro ha hb
+
+-- ⊢ a → b → a ∧ b
 example : a → b → And a b := fun ha hb => And.intro ha hb
+
+-- a ∧ b ⊢ a
 example (And_ab : And a b) : a := And_ab.left
+
+-- a ∧ b ⊢ b
 example (And_ab : And a b) : b := And_ab.right
 
 theorem And.symm (And_ab: And a b) : And b a :=
@@ -78,7 +116,13 @@ theorem And.symm (And_ab: And a b) : And b a :=
   have hb : b := And_ab.right
   intro hb ha
 
+-- a ∧ b ⊢ b ∧ a
+example (And_ab: And a b) : And b a := And_ab.symm
+
 abbrev And.elim (ab : a → b → α) (And_ab : And a b) : α := ab And_ab.left And_ab.right
+
+-- a → b → c, a ∧ b ⊢ c
+example (ab : a → b → c) (And_ab : And a b) : c := And_ab.elim ab
 
 /- Or -/
 
@@ -90,9 +134,16 @@ theorem Or.intro_left (b : Prop) (h : a) : Or a b := inl h
 
 theorem Or.intro_right (a : Prop) (h : b) : Or a b := inr h
 
+-- ⊢ ⊤ ∨ b
 example : Or True b := Or.intro_left b True.intro
+
+-- ⊢ b ∨ ⊤
 example : Or b True := Or.intro_right b True.intro
+
+-- a ⊢ a ∨ b
 example (ha : a) : Or a b := Or.intro_left b ha
+
+-- b ⊢ a ∨ b
 example (ha : a) : Or b a := Or.intro_right b ha
 
 theorem Or.elim {c : Prop} (Or_ab : Or a b) (left : a → c) (right : b → c) : c :=
@@ -100,20 +151,38 @@ theorem Or.elim {c : Prop} (Or_ab : Or a b) (left : a → c) (right : b → c) :
   | inl h => left h
   | inr h => right h
 
+-- a ∨ b, a → c, b → c ⊢ c
+example (Or_ab : Or a b) (ac : a → c) (bc : b → c) : c := Or_ab.elim ac bc
+
 theorem Or.symm (Or_ab : Or a b) : Or b a :=
   Or_ab.elim (fun ha => Or.intro_right b ha) (fun hb => Or.intro_left a hb)
+
+-- a ∨ b ⊢ b ∨ a
+example (Or_ab: Or a b) : Or b a := Or_ab.symm
 
 theorem Or.resolve_left  (Or_ab : Or a b) (Not_a : Not a) : b :=
   Or_ab.elim (fun ha => absurd ha Not_a) id
 
+-- a ∨ b, ¬a ⊢ b
+example (Or_ab : Or a b) (Not_a : Not a) : b := Or_ab.resolve_left Not_a
+
 theorem Or.resolve_right (Or_ab: Or a b) (Not_b : Not b) : a :=
   Or_ab.elim id (fun hb => absurd hb Not_b)
+
+-- a ∨ b, ¬b ⊢ a
+example (Or_ab: Or a b) (Not_b : Not b) : a := Or_ab.resolve_right Not_b
 
 theorem Or.neg_resolve_left (Or_Not_a_b : Or (Not a) b) (ha : a) : b :=
   Or_Not_a_b.elim (fun Not_a => absurd ha Not_a) id
 
+-- ¬a ∨ b, a ⊢ b
+example (Or_Not_a_b : Or (Not a) b) (ha : a) : b := Or_Not_a_b.neg_resolve_left ha
+
 theorem Or.neg_resolve_right (Or_a_Not_b : Or a (Not b)) (hb : b) : a :=
   Or_a_Not_b.elim id (fun Not_b => absurd hb Not_b)
+
+-- a ∨ ¬b, b ⊢ ¬a
+example (Or_a_Not_b : Or a (Not b)) (hb : b) : a := Or_a_Not_b.neg_resolve_right hb
 
 /- Iff -/
 
@@ -122,34 +191,60 @@ structure Iff (a b : Prop) : Prop where
   mp    : a → b
   mpr   : b → a
 
+-- ⊢ ⊤ ↔ ⊤
 example : Iff True True := Iff.intro (fun _ => True.intro) (fun _ => True.intro)
+
+-- ⊢ ⊥ ↔ ⊥
 example : Iff False False := Iff.intro (fun false => false) (fun false => false)
+
+-- a → b, b → a ⊢ a ↔ b
 example (ab : a → b) (ba : b → a) : Iff a b := Iff.intro ab ba
+
+-- a ↔ b ⊢ a → b
 example (Iff_ab : Iff a b) : a → b := Iff_ab.mp
+
+-- a ↔ b ⊢ b → a
 example (Iff_ab : Iff a b) : b → a := Iff_ab.mpr
 
 theorem iff_iff_implies_and_implies {a b : Prop} : Iff (Iff a b) (And (a → b) (b → a)) :=
   Iff.intro (fun Iff_ab => And.intro Iff_ab.mp Iff_ab.mpr) (fun And_ab_ba => Iff.intro And_ab_ba.left And_ab_ba.right)
 
+-- ⊢ (a ↔ b) ↔ ((a → b) ∧ (b → a))
+example : Iff (Iff a b) (And (a → b) (b → a)) := iff_iff_implies_and_implies
+
 theorem Iff.refl (a : Prop) : Iff a a :=
   Iff.intro (fun ha => ha) (fun ha => ha)
-
 theorem Iff.rfl {a : Prop} : Iff a a := Iff.refl a
+
+-- ⊢ a ↔ a
+example : Iff a a := Iff.refl a
 
 theorem Iff.trans (Iff_ab : Iff a b) (Iff_bc : Iff b c) : Iff a c :=
   Iff.intro (fun ha => Iff_bc.mp (Iff_ab.mp ha)) (fun hc => Iff_ab.mpr (Iff_bc.mpr hc))
 
+-- a ↔ b, b ↔ c ⊢ a ↔ c
+example (Iff_ab : Iff a b) (Iff_bc : Iff b c) : Iff a c := Iff_ab.trans Iff_bc
+
 theorem Iff.symm (Iff_ab : Iff a b) : Iff b a := Iff.intro Iff_ab.mpr Iff_ab.mp
+
+-- a ↔ b ⊢ b ↔ a
+example  (Iff_ab : Iff a b) : Iff b a := Iff_ab.symm
 
 def Iff.elim (ab_ba : (a → b) → (b → a) → α) (Iff_ab : Iff a b) : α := ab_ba Iff_ab.mp Iff_ab.mpr
 
-axiom propext {a b : Prop} : (Iff a b) → Eq a b
-
-theorem Iff.subst {a b : Prop} {p : Prop → Prop} (Iff_ab : Iff a b) (pa : p a) : p b :=
-  Eq.subst (propext Iff_ab) pa
+-- (a → b) → (b → a) → c, a ↔ b ⊢ c
+example (ab_ba : (a → b) → (b → a) → c) (Iff_ab : Iff a b) : c := Iff_ab.elim ab_ba
 
 theorem iff_of_true (ha : a) (hb : b) : Iff a b := Iff.intro (fun _ => hb) (fun _ => ha)
+
+-- a, b ⊢ a ↔ b
+example (ha : a) (hb : b) : Iff a b := iff_of_true ha hb
+
 theorem iff_of_false (ha : Not a) (hb : Not b) : Iff a b := Iff.intro ha.elim hb.elim
+
+-- ¬a, ¬b ⊢ a ↔ b
+example (Not_a : Not a) (Not_b : Not b) : Iff a b := iff_of_false Not_a Not_b
+
 theorem of_iff_true (Iff_at : Iff a True) : a := Iff_at.mpr True.intro
 theorem iff_true_intro (ha : a) : Iff a True := iff_of_true ha True.intro
 theorem not_of_iff_false : (Iff p False) → Not p := Iff.mp
@@ -357,6 +452,11 @@ example : Eq a (id a) := eq_id a
 abbrev Eq.ndrec.{u, v} {α : Sort v} {a : α} {motive : α → Sort u} (m : motive a) {b : α} (h : Eq a b) : motive b := h.rec m
 
 theorem Eq.subst {α : Sort u} {motive : α → Prop} {a b : α} (Eq_ab : Eq a b) (motive_a : motive a) : motive b := ndrec motive_a Eq_ab
+
+axiom propext {a b : Prop} : (Iff a b) → Eq a b
+
+theorem Iff.subst {a b : Prop} {p : Prop → Prop} (Iff_ab : Iff a b) (pa : p a) : p b :=
+  Eq.subst (propext Iff_ab) pa
 
 theorem Eq.symm {α : Sort u} {a b : α} (Eq_ab : Eq a b) : Eq b a :=
   have Eq_aa : Eq a a := Eq.refl a
