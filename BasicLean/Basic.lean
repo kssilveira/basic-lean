@@ -23,7 +23,6 @@ inductive False : Prop
 -- ⊢ ⊥ → ⊥
 example : False → False := fun false => false
 
-
 -- false proves a
 -- ⊥ ⊢ a
 def False.elim (false : False) : a := false.rec
@@ -45,7 +44,9 @@ theorem not_false : Not False := fun false => false
 -- a proves not not a
 -- a ⊢ ¬¬a
 theorem not_not_intro (ha : a) : Not (Not a) :=
-  fun na => na ha
+  fun na =>
+    have false: False := na ha
+    false
 
 -- not not true
 -- ⊢ ¬¬⊤
@@ -55,7 +56,10 @@ example : Not (Not True) := not_not_intro True.intro
 --   proves not a
 -- a → b, ¬b ⊢ ¬a
 theorem Not.imp (nb : Not b) (ab : a → b) : Not a :=
-  fun ha => nb (ab ha)
+  fun ha =>
+    have hb : b := ab ha
+    have false: False := nb hb
+    false
 
 -- not a, a
 --   proves b
@@ -66,7 +70,10 @@ def Not.elim (na : Not a) (ha : a) : b :=
 
 -- a proves not a implies b
 -- a ⊢ ¬a → b
-example (ha : a) : Not a → b := fun na => na.elim ha
+example (ha : a) : Not a → b :=
+  fun na =>
+    have hb : b := na.elim ha
+    hb
 
 -- a implies not a implies b
 -- ⊢ a → ¬a → b
@@ -76,13 +83,17 @@ example : a → Not a → b := fun ha na => na.elim ha
 -- a implies false
 --   proves not a
 -- a → ⊥ ⊢ ¬a
-theorem Not.intro (af : a → False) : Not a := af
+theorem Not.intro (af : a → False) : Not a :=
+  fun ha =>
+    have false : False := af ha
+    false
 
 /- Implies -/
 
 -- a proves b implies a
 -- a ⊢ b → a
-theorem imp_intro {a : Prop} (ha : a) : b → a := fun _ => ha
+theorem imp_intro {a : Prop} (ha : a) : b → a :=
+  fun _ => ha
 
 -- c implies a, b implies d
 --   proves (a implies b) implies (c implies d)
@@ -359,10 +370,10 @@ example : Iff (Or p q) (Or q p) :=
   Iff.intro
     (fun or_pq => or_pq.elim
       (fun hp => Or.intro_right q hp)
-      (fun hq => Or.intro_left p hq))
+      (fun hq => Or.intro_left  p hq))
     (fun or_qp => or_qp.elim
       (fun hq => Or.intro_right p hq)
-      (fun hp => Or.intro_left q hp))
+      (fun hp => Or.intro_left  q hp))
 
 -- (p and q) and r iff p and (q and r)
 -- ⊢ (p ∧ q) ∧ r ↔ p ∧ (q ∧ r)
@@ -519,7 +530,7 @@ theorem id_eq (a : α) : Eq (id a) a := Eq.refl a
 -- ⊢ a = (id a)
 theorem eq_id (a : α) : Eq a (id a) := Eq.refl a
 
-abbrev Eq.ndrec {motive : α → Sort u}
+abbrev Eq.ndrec {motive : α → Sort _}
     (m : motive a) (h : Eq a b) : motive b :=
   h.rec m
 
@@ -551,7 +562,7 @@ theorem congrArg (f : α → β) (eq_ab: Eq a b) : Eq (f a) (f b) :=
   Eq.subst (motive := fun x => Eq (f a) (f x)) eq_ab eq_fa_fa
 
 -- f = g ⊢ f a = g a
-theorem congrFun {β : α → Sort v} {f g : (x : α) → β x}
+theorem congrFun {β : α → Sort _} {f g : (x : α) → β x}
     (eq_fg : Eq f g) (a : α) : Eq (f a) (g a) :=
   have eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
   Eq.subst (motive := fun x => Eq (f a) (x a)) eq_fg eq_fa_fa
@@ -612,14 +623,14 @@ inductive Nat where
   | zero : Nat
   | succ : Nat → Nat
 
-class LE (α : Type u) where
+class LE (α : Type _) where
   le : α → α → Prop
 
--- a + b
-def Nat.add (a b : Nat) : Nat :=
-  match b with
-  | zero           => a
-  | succ b_minus_1 => succ (add a b_minus_1)
+-- n + m
+def Nat.add (n m : Nat) : Nat :=
+  match m with
+  | zero   => n
+  | succ m => succ (add n m)
 
 -- ⊢ n + 0 = n
 theorem Nat.add_zero (n : Nat) : Eq (add n zero) n := Eq.refl (add n zero)
@@ -647,11 +658,11 @@ theorem Nat.add_comm (n m : Nat) : Eq (add n m) (add m n) :=
   | n, succ m =>
     (congrArg succ (add_comm n m)).trans (succ_add m n).symm
 
--- a * b
-def Nat.mul (a b : Nat) : Nat :=
-  match b with
-  | zero           => zero
-  | succ b_minus_1 => add a (mul a b_minus_1)
+-- n * m
+def Nat.mul (n m : Nat) : Nat :=
+  match m with
+  | zero   => zero
+  | succ m => add n (mul n m)
 
 -- ⊢ n * 0 = 0
 theorem Nat.mul_zero (n : Nat) : Eq (mul n zero) zero := Eq.refl (mul n zero)
