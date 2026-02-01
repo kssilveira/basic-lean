@@ -222,9 +222,9 @@ theorem Nat.ne_of_beq_eq_false {n m : Nat} (Eq_beq_nm_false : Eq (beq n m) false
 /-
 theorem Nat.beq_eq_true_of_eq {n m : Nat} (Eq_nm : Eq n m) : Eq (beq n m) true :=
   match n, m with
-  | zero,   zero   => Eq.refl (beq zero zero)
-  | zero,   succ _ => Nat.noConfusion Eq_nm.Root
-  | succ _, zero   => Nat.noConfusion Eq_nm.Root
+  | zero,   zero     => Eq.refl (beq zero zero)
+  | zero,   succ _   => Nat.noConfusion Eq_nm.Root
+  | succ _, zero     => Nat.noConfusion Eq_nm.Root
   | succ np, succ mp =>
   beq_eq_true_of_eq Eq_nm
   termination_by sizeOf n
@@ -250,7 +250,7 @@ instance instLENat : LE Nat where
 theorem Nat.not_succ_le_zero (n : Nat) : LE.le (succ n) zero → False :=
   have Eq_m_zero_implies: ∀ m, Eq m zero → LE.le (succ n) m → False := fun _ Eq_m_zero Le_succ_n_m =>
     le.casesOn (motive := fun m _ => Eq m Nat.zero → False) Le_succ_n_m
-      (fun Eq_succ_n_zero => Nat.noConfusion Eq_succ_n_zero.Root)
+      (fun Eq_succ_n_zero   => Nat.noConfusion Eq_succ_n_zero.Root)
       (fun _ Eq_succ_m_zero => Nat.noConfusion Eq_succ_m_zero.Root)
       Eq_m_zero
   have Eq_zero_zero : Eq zero zero := Eq.refl zero
@@ -261,7 +261,7 @@ theorem Nat.zero_le : (n : Nat) → LE.le zero n
   | succ n => Nat.le.step (zero_le n)
 
 theorem Nat.succ_le_succ : LE.le n m → LE.le (succ n) (succ m)
-  | Nat.le.refl   => Nat.le.refl
+  | Nat.le.refl       => Nat.le.refl
   | Nat.le.step Le_nm => Nat.le.step (succ_le_succ Le_nm)
 
 theorem Nat.le_succ_of_le (Le_nm : LE.le n m) : LE.le n (succ m) :=
@@ -276,3 +276,33 @@ theorem Nat.le_succ (n : Nat) : LE.le n (succ n) :=
 
 theorem Nat.le_refl (n : Nat) : LE.le n n :=
   Nat.le.refl
+
+def Nat.pred : Nat → Nat
+  | zero   => zero
+  | succ n => n
+
+theorem Nat.pred_le_pred : {n m : Nat} → LE.le n m → LE.le (pred n) (pred m)
+  | _,           _, Nat.le.refl             => Nat.le.refl
+  | zero,   succ _, Nat.le.step Le_zero_m   => Le_zero_m
+  | succ _, succ _, Nat.le.step Le_succ_n_m => Nat.le_trans (le_succ _) Le_succ_n_m
+
+theorem Nat.le_of_succ_le_succ {n m : Nat} : LE.le (succ n) (succ m) → LE.le n m :=
+  pred_le_pred
+
+theorem Nat.not_succ_le_self : (n : Nat) → Not (LE.le (succ n) n)
+  | zero   => not_succ_le_zero _
+  | succ n => fun Le_succ_n_n => absurd (le_of_succ_le_succ Le_succ_n_n) (not_succ_le_self n)
+
+def Nat.ble : Nat → Nat → Bool
+  | zero,   _      => true
+  | succ _, zero   => false
+  | succ n, succ m => ble n m
+
+theorem Nat.le_of_ble_eq_true (Eq_ble_nm_true : Eq (Nat.ble n m) true) : LE.le n m :=
+  match n, m with
+  | zero,      _   => Nat.zero_le _
+  | succ _, succ _ => Nat.succ_le_succ (le_of_ble_eq_true Eq_ble_nm_true)
+
+theorem Nat.ble_self_eq_true : (n : Nat) → Eq (Nat.ble n n) true
+  | zero   => Eq.refl (ble zero zero)
+  | succ n => ble_self_eq_true n
