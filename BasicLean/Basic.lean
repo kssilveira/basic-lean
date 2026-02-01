@@ -49,9 +49,7 @@ theorem not_false : Not False :=
 -- a ⊢ ¬¬a
 theorem not_not_intro
     (ha : a) : Not (Not a) :=
-  fun na =>
-    have false: False := na ha
-    false
+  fun na => show False from na ha
 
 -- not not true
 -- ⊢ ¬¬⊤
@@ -65,8 +63,7 @@ theorem Not.imp
     (nb : Not b) (ab : a → b) : Not a :=
   fun ha =>
     have hb : b := ab ha
-    have false: False := nb hb
-    false
+    show False from nb hb
 
 -- not a, a
 --   proves b
@@ -78,9 +75,7 @@ def Not.elim (na : Not a) (ha : a) : b :=
 -- a proves not a implies b
 -- a ⊢ ¬a → b
 example (ha : a) : Not a → b :=
-  fun na =>
-    have hb : b := na.elim ha
-    hb
+  fun na => show b from na.elim ha
 
 -- a implies not a implies b
 -- ⊢ a → ¬a → b
@@ -94,9 +89,7 @@ example : a → Not a → b :=
 -- a → ⊥ ⊢ ¬a
 theorem Not.intro
     (af : a → False) : Not a :=
-  fun ha =>
-    have false : False := af ha
-    false
+  fun ha => show False from af ha
 
 /- Implies -/
 
