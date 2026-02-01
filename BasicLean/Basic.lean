@@ -570,34 +570,38 @@ inductive Bool : Type where
 
 export Bool (false true)
 
-theorem eq_false_of_ne_true {b : Bool} (neq_bt : Not (Eq b true)) : Eq b false :=
+-- ¬(b = true) ⊢ b = false
+theorem eq_false_of_ne_true (neq_bt : Not (Eq b true)) : Eq b false :=
   match b with
   | false => Eq.refl false
   | true  =>
     have eq_tt : Eq true true := Eq.refl true
     neq_bt.elim eq_tt
 
-theorem eq_true_of_ne_false {b : Bool} (neq_bf : Not (Eq b false)) : Eq b true :=
+-- ¬(b = false) ⊢ b = true
+theorem eq_true_of_ne_false (neq_bf : Not (Eq b false)) : Eq b true :=
   match b with
   | true  => Eq.refl true
   | false =>
     have eq_ff : Eq false false := Eq.refl false
     neq_bf.elim eq_ff
 
-def Eq.Root {α : Sort u} {a b : α } (eq_ab : Eq a b) : _root_.Eq a b :=
+def Eq.Root (eq_ab : Eq a b) : _root_.Eq a b :=
   match eq_ab with
   | refl a => _root_.Eq.refl a
 
-def Eq.FromRoot {α : Sort u} {a b : α } (Rooteq_ab : _root_.Eq a b) : Eq a b :=
-  match Rooteq_ab with
+def Eq.FromRoot (req_ab : _root_.Eq a b) : Eq a b :=
+  match req_ab with
   | _root_.Eq.refl a => Eq.refl a
 
-theorem ne_false_of_eq_true {b : Bool} (eq_b_true : Eq b true) : Not (Eq b false) :=
+-- b = true ⊢ ¬(b = false)
+theorem ne_false_of_eq_true (eq_b_true : Eq b true) : Not (Eq b false) :=
   match b with
   | true  => fun eq_true_false => Bool.noConfusion eq_true_false.Root
   | false => Bool.noConfusion eq_b_true.Root
 
-theorem ne_true_of_eq_false {b : Bool} (eq_b_false : Eq b false) : Not (Eq b true) :=
+-- b = false ⊢ ¬(b = true)
+theorem ne_true_of_eq_false (eq_b_false : Eq b false) : Not (Eq b true) :=
   match b with
   | true  => Bool.noConfusion eq_b_false.Root
   | false => fun eq_false_true => Bool.noConfusion eq_false_true.Root
@@ -687,7 +691,7 @@ theorem Nat.ne_of_beq_eq_false {n m : Nat} (eq_beq_nm_false : Eq (beq n m) false
   | succ _, zero   => fun eq_nm => Nat.noConfusion eq_nm.Root
   | succ n, succ m => fun eq_nm =>
     have neq_nm : Not (Eq n m) := ne_of_beq_eq_false eq_beq_nm_false
-    Nat.noConfusion eq_nm.Root (fun Rooteq_nm => neq_nm.elim (Eq.FromRoot Rooteq_nm))
+    Nat.noConfusion eq_nm.Root (fun req_nm => neq_nm.elim (Eq.FromRoot req_nm))
 
 protected inductive Nat.le (n : Nat) : Nat → Prop
   | refl     : Nat.le n n
