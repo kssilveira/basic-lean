@@ -680,7 +680,8 @@ def Nat.beq : Nat → Nat → Bool
   | succ n, succ m => beq n m
 
 -- (n == m) = true ⊢ n = m
-theorem Nat.eq_of_beq_eq_true (eq_beq_nm_true : Eq (beq n m) true) : Eq n m :=
+theorem Nat.eq_of_beq_eq_true
+    (eq_beq_nm_true : Eq (beq n m) true) : Eq n m :=
   match n, m with
   | zero,   zero   => Eq.refl Nat.zero
   | zero,   succ _ => Bool.noConfusion eq_beq_nm_true.Root
@@ -712,7 +713,7 @@ instance instLENat : LE Nat where
 
 -- ⊢ (n + 1) ≤ 0 → ⊥
 theorem Nat.not_succ_le_zero (n : Nat) : LE.le (succ n) zero → False :=
-  have eq_m_zero_implies: ∀ m, Eq m zero → LE.le (succ n) m → False :=
+  have eq_m_zero_implies: (m : Nat) → Eq m zero → LE.le (succ n) m → False :=
     fun _ eq_m_zero le_succ_n_m =>
       le.casesOn
         (motive := fun m _ => Eq m Nat.zero → False)
@@ -770,4 +771,5 @@ theorem Nat.le_of_succ_le_succ : LE.le (succ n) (succ m) → LE.le n m :=
 -- ⊢ ¬((n + 1) ≤ n)
 theorem Nat.not_succ_le_self : (n : Nat) → Not (LE.le (succ n) n)
   | zero   => not_succ_le_zero _
-  | succ n => fun le_succ_n_n => (not_succ_le_self n).elim (le_of_succ_le_succ le_succ_n_n)
+  | succ n => fun le_succ_n_n =>
+    (not_succ_le_self n).elim (le_of_succ_le_succ le_succ_n_n)
