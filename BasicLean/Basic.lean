@@ -219,27 +219,6 @@ theorem Nat.ne_of_beq_eq_false {n m : Nat} (Eq_beq_nm_false : Eq (beq n m) false
     have Not_Eq_nm : Not (Eq n m) := ne_of_beq_eq_false Eq_beq_nm_false
     Nat.noConfusion Eq_nm.Root (fun RootEq_nm => absurd (Eq.FromRoot RootEq_nm) Not_Eq_nm)
 
-/-
-theorem Nat.beq_eq_true_of_eq {n m : Nat} (Eq_nm : Eq n m) : Eq (beq n m) true :=
-  match n, m with
-  | zero,   zero     => Eq.refl (beq zero zero)
-  | zero,   succ _   => Nat.noConfusion Eq_nm.Root
-  | succ _, zero     => Nat.noConfusion Eq_nm.Root
-  | succ np, succ mp =>
-  beq_eq_true_of_eq Eq_nm
-  termination_by sizeOf n
-  decreasing_by n
-
-private theorem noConfusion_of_Nat.aux : (a : Nat) → (Nat.beq a a).rec False True
-  | Nat.zero   => True.intro
-  | Nat.succ n => noConfusion_of_Nat.aux n
-
-theorem noConfusion_of_Nat {α : Sort u} (f : α → Nat) {a b : α} (Eq_ab : Eq a b) :
-    (Nat.beq (f a) (f b)).rec False True :=
-  have Eq_fa_fb : Eq (f a) (f b) := congrArg f Eq_ab
-  Eq_fa_fb.Root ▸ noConfusion_of_Nat.aux (f a)
--/
-
 protected inductive Nat.le (n : Nat) : Nat → Prop
   | refl     : Nat.le n n
   | step {m} : Nat.le n m → Nat.le n (succ m)
