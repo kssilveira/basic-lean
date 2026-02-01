@@ -306,3 +306,11 @@ theorem Nat.le_of_ble_eq_true (Eq_ble_nm_true : Eq (Nat.ble n m) true) : LE.le n
 theorem Nat.ble_self_eq_true : (n : Nat) → Eq (Nat.ble n n) true
   | zero   => Eq.refl (ble zero zero)
   | succ n => ble_self_eq_true n
+
+def Nat.sub (n : Nat) : Nat → Nat
+  | zero   => n
+  | succ m => pred (Nat.sub n m)
+
+theorem Nat.pred_le : ∀ (n : Nat), LE.le (Nat.pred n) n
+  | zero   => Nat.le.refl
+  | succ _ => le_succ _
