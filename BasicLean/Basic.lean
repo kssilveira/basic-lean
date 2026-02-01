@@ -615,67 +615,72 @@ inductive Nat where
 class LE (α : Type u) where
   le : α → α → Prop
 
-class LT (α : Type u) where
-  lt : α → α → Prop
-
-def GE.ge {α : Type u} [LE α] (a b : α) : Prop := LE.le b a
-
-def GT.gt {α : Type u} [LT α] (a b : α) : Prop := LT.lt b a
-
+-- a + b
 def Nat.add (a b : Nat) : Nat :=
   match b with
   | zero           => a
   | succ b_minus_1 => succ (add a b_minus_1)
 
+-- ⊢ n + 0 = n
 theorem Nat.add_zero (n : Nat) : Eq (add n zero) n := Eq.refl (add n zero)
 
+-- ⊢ 0 + n = n
 theorem Nat.zero_add (n : Nat) : Eq (add zero n) n :=
   match n with
   | zero    => Eq.refl zero
   | succ n  => congrArg succ (Nat.zero_add n)
 
+-- ⊢ (n + 1) + m = (n + m) + 1
 theorem Nat.succ_add (n m : Nat) : Eq (add (succ n) m) (succ (add n m)) :=
   match n, m with
   | n, zero   => Eq.refl (succ (add n zero))
   | n, succ m => congrArg succ (succ_add n m)
 
-theorem Nat.add_succ (n m : Nat) : Eq (add n (succ m)) (succ (add n m)) := Eq.refl (succ (add n m))
+-- ⊢ n + (m + 1) = (n + m) + 1
+theorem Nat.add_succ (n m : Nat) : Eq (add n (succ m)) (succ (add n m)) :=
+  Eq.refl (succ (add n m))
 
+-- ⊢ n + m = m + n
 theorem Nat.add_comm (n m : Nat) : Eq (add n m) (add m n) :=
   match n, m with
   | n, zero   => Eq.symm (Nat.zero_add n)
   | n, succ m =>
     (congrArg succ (add_comm n m)).trans (succ_add m n).symm
 
+-- a * b
 def Nat.mul (a b : Nat) : Nat :=
   match b with
   | zero           => zero
   | succ b_minus_1 => add a (mul a b_minus_1)
 
+-- ⊢ n * 0 = 0
 theorem Nat.mul_zero (n : Nat) : Eq (mul n zero) zero := Eq.refl (mul n zero)
 
-theorem Nat.mul_succ (n m : Nat) : Eq (mul n (succ m)) (add n (mul n m)) := Eq.refl (add n (mul n m))
+-- ⊢ n * (m + 1) = n + (n * m)
+theorem Nat.mul_succ (n m : Nat) : Eq (mul n (succ m)) (add n (mul n m)) :=
+  Eq.refl (add n (mul n m))
 
+-- ⊢ 0 * n = 0
 theorem Nat.zero_mul (n : Nat) : Eq (mul zero n) zero :=
   match n with
   | zero   => Eq.refl zero
   | succ n =>
-    ((zero_mul n).symm.trans ((zero_add (mul zero n)).symm.trans (mul_succ zero n).symm)).symm
+    ((zero_mul n).symm.trans ((zero_add (mul zero n)).symm.trans
+      (mul_succ zero n).symm)).symm
 
-theorem Nat.mul_one (n : Nat) : Eq (mul n (succ zero)) n := Eq.refl (mul n (succ zero))
+-- ⊢ n * 1 = n
+theorem Nat.mul_one (n : Nat) : Eq (mul n (succ zero)) n :=
+  Eq.refl (mul n (succ zero))
 
-def Nat.pow (a b : Nat) : Nat :=
-  match b with
-  | zero           => succ zero
-  | succ b_minus_1 => mul a (pow a b_minus_1)
-
+-- n == m
 def Nat.beq : Nat → Nat → Bool
   | zero,   zero   => true
   | zero,   succ _ => false
   | succ _, zero   => false
   | succ n, succ m => beq n m
 
-theorem Nat.eq_of_beq_eq_true {n m : Nat} (eq_beq_nm_true : Eq (beq n m) true) : Eq n m :=
+-- (n == m) = true ⊢ n = m
+theorem Nat.eq_of_beq_eq_true (eq_beq_nm_true : Eq (beq n m) true) : Eq n m :=
   match n, m with
   | zero,   zero   => Eq.refl Nat.zero
   | zero,   succ _ => Bool.noConfusion eq_beq_nm_true.Root
@@ -684,86 +689,85 @@ theorem Nat.eq_of_beq_eq_true {n m : Nat} (eq_beq_nm_true : Eq (beq n m) true) :
     have eq_nm : Eq n m := eq_of_beq_eq_true eq_beq_nm_true
     congrArg succ eq_nm
 
-theorem Nat.ne_of_beq_eq_false {n m : Nat} (eq_beq_nm_false : Eq (beq n m) false) : Not (Eq n m) :=
+-- (n == m) = false ⊢ ¬(m = n)
+theorem Nat.ne_of_beq_eq_false
+    (eq_beq_nm_false : Eq (beq n m) false) : Not (Eq n m) :=
   match n, m with
   | zero,   zero   => Bool.noConfusion eq_beq_nm_false.Root
   | zero,   succ _ => fun eq_nm => Nat.noConfusion eq_nm.Root
   | succ _, zero   => fun eq_nm => Nat.noConfusion eq_nm.Root
   | succ n, succ m => fun eq_nm =>
     have neq_nm : Not (Eq n m) := ne_of_beq_eq_false eq_beq_nm_false
-    Nat.noConfusion eq_nm.Root (fun req_nm => neq_nm.elim (Eq.FromRoot req_nm))
+    Nat.noConfusion
+      eq_nm.Root
+      (fun req_nm => neq_nm.elim (Eq.FromRoot req_nm))
 
-protected inductive Nat.le (n : Nat) : Nat → Prop
-  | refl     : Nat.le n n
-  | step {m} : Nat.le n m → Nat.le n (succ m)
+-- n ≤ m
+inductive Nat.le (n : Nat) : Nat → Prop
+  | refl : Nat.le n n
+  | step : Nat.le n m → Nat.le n (succ m)
 
 instance instLENat : LE Nat where
   le := Nat.le
 
+-- ⊢ (n + 1) ≤ 0 → ⊥
 theorem Nat.not_succ_le_zero (n : Nat) : LE.le (succ n) zero → False :=
-  have eq_m_zero_implies: ∀ m, Eq m zero → LE.le (succ n) m → False := fun _ eq_m_zero Le_succ_n_m =>
-    le.casesOn (motive := fun m _ => Eq m Nat.zero → False) Le_succ_n_m
-      (fun eq_succ_n_zero   => Nat.noConfusion eq_succ_n_zero.Root)
-      (fun _ eq_succ_m_zero => Nat.noConfusion eq_succ_m_zero.Root)
-      eq_m_zero
+  have eq_m_zero_implies: ∀ m, Eq m zero → LE.le (succ n) m → False :=
+    fun _ eq_m_zero le_succ_n_m =>
+      le.casesOn
+        (motive := fun m _ => Eq m Nat.zero → False)
+        le_succ_n_m
+        (fun eq_succ_n_zero   => Nat.noConfusion eq_succ_n_zero.Root)
+        (fun _ eq_succ_m_zero => Nat.noConfusion eq_succ_m_zero.Root)
+        eq_m_zero
   have eq_zero_zero : Eq zero zero := Eq.refl zero
   eq_m_zero_implies zero eq_zero_zero
 
+-- ⊢ 0 ≤ n
 theorem Nat.zero_le : (n : Nat) → LE.le zero n
   | zero   => Nat.le.refl
   | succ n => Nat.le.step (zero_le n)
 
+-- ⊢ n ≤ m → (n + 1) ≤ (m + 1)
 theorem Nat.succ_le_succ : LE.le n m → LE.le (succ n) (succ m)
   | Nat.le.refl       => Nat.le.refl
-  | Nat.le.step Le_nm => Nat.le.step (succ_le_succ Le_nm)
+  | Nat.le.step le_nm => Nat.le.step (succ_le_succ le_nm)
 
-theorem Nat.le_succ_of_le (Le_nm : LE.le n m) : LE.le n (succ m) :=
-  Nat.le.step Le_nm
+-- n ≤ m ⊢ n ≤ m + 1
+theorem Nat.le_succ_of_le (le_nm : LE.le n m) : LE.le n (succ m) :=
+  Nat.le.step le_nm
 
-theorem Nat.le_trans {n m k : Nat} (Le_nm : LE.le n m) : LE.le m k → LE.le n k
-  | Nat.le.refl       => Le_nm
-  | Nat.le.step Le_mk => Nat.le.step (Nat.le_trans Le_nm Le_mk)
+-- n ≤ m ⊢ m ≤ k → n ≤ k
+theorem Nat.le_trans {n : Nat}
+    (le_nm : LE.le n m) : LE.le m k → LE.le n k
+  | Nat.le.refl       => le_nm
+  | Nat.le.step le_mk => Nat.le.step (Nat.le_trans le_nm le_mk)
 
+-- ⊢ n ≤ (n + 1)
 theorem Nat.le_succ (n : Nat) : LE.le n (succ n) :=
   Nat.le.step Nat.le.refl
 
+-- ⊢ n ≤ n
 theorem Nat.le_refl (n : Nat) : LE.le n n :=
   Nat.le.refl
 
+-- n - 1
 def Nat.pred : Nat → Nat
   | zero   => zero
   | succ n => n
 
+-- ⊢ n ≤ m → (n - 1) ≤ (m - 1)
 theorem Nat.pred_le_pred : {n m : Nat} → LE.le n m → LE.le (pred n) (pred m)
   | _,           _, Nat.le.refl             => Nat.le.refl
-  | zero,   succ _, Nat.le.step Le_zero_m   => Le_zero_m
-  | succ _, succ _, Nat.le.step Le_succ_n_m => Nat.le_trans (le_succ _) Le_succ_n_m
+  | zero,   succ _, Nat.le.step le_zero_m   => le_zero_m
+  | succ _, succ _, Nat.le.step le_succ_n_m =>
+    Nat.le_trans (le_succ _) le_succ_n_m
 
-theorem Nat.le_of_succ_le_succ {n m : Nat} : LE.le (succ n) (succ m) → LE.le n m :=
+-- ⊢ (n + 1) ≤ (m + 1) → n ≤ m
+theorem Nat.le_of_succ_le_succ : LE.le (succ n) (succ m) → LE.le n m :=
   pred_le_pred
 
+-- ⊢ ¬((n + 1) ≤ n)
 theorem Nat.not_succ_le_self : (n : Nat) → Not (LE.le (succ n) n)
   | zero   => not_succ_le_zero _
-  | succ n => fun Le_succ_n_n => (not_succ_le_self n).elim (le_of_succ_le_succ Le_succ_n_n)
-
-def Nat.ble : Nat → Nat → Bool
-  | zero,   _      => true
-  | succ _, zero   => false
-  | succ n, succ m => ble n m
-
-theorem Nat.le_of_ble_eq_true (eq_ble_nm_true : Eq (Nat.ble n m) true) : LE.le n m :=
-  match n, m with
-  | zero,      _   => Nat.zero_le _
-  | succ _, succ _ => Nat.succ_le_succ (le_of_ble_eq_true eq_ble_nm_true)
-
-theorem Nat.ble_self_eq_true : (n : Nat) → Eq (Nat.ble n n) true
-  | zero   => Eq.refl (ble zero zero)
-  | succ n => ble_self_eq_true n
-
-def Nat.sub (n : Nat) : Nat → Nat
-  | zero   => n
-  | succ m => pred (Nat.sub n m)
-
-theorem Nat.pred_le : ∀ (n : Nat), LE.le (Nat.pred n) n
-  | zero   => Nat.le.refl
-  | succ _ => le_succ _
+  | succ n => fun le_succ_n_n => (not_succ_le_self n).elim (le_of_succ_le_succ le_succ_n_n)
