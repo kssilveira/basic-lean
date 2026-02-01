@@ -64,11 +64,11 @@ def Not.elim (na : Not a) (ha : a) : b :=
   have false : False := na ha
   false.elim
 
--- a proves (not a) implies b
+-- a proves not a implies b
 -- a ⊢ ¬a → b
 example (ha : a) : Not a → b := fun na => na.elim ha
 
--- a implies (not a) implies b
+-- a implies not a implies b
 -- ⊢ a → ¬a → b
 example : a → Not a → b := fun ha => fun na => na.elim ha
 example : a → Not a → b := fun ha na => na.elim ha
@@ -149,59 +149,62 @@ inductive Or (a b : Prop) : Prop where
   | inl (h : a) : Or a b
   | inr (h : b) : Or a b
 
+-- a proves a or b
+-- a ⊢ a ∨ b
 theorem Or.intro_left (b : Prop) (h : a) : Or a b := inl h
 
+-- b proves a or b
+-- b ⊢ a ∨ b
 theorem Or.intro_right (a : Prop) (h : b) : Or a b := inr h
 
+-- true or b
 -- ⊢ ⊤ ∨ b
 example : Or True b := Or.intro_left b True.intro
 
+-- b or true
 -- ⊢ b ∨ ⊤
 example : Or b True := Or.intro_right b True.intro
 
--- a ⊢ a ∨ b
-example (ha : a) : Or a b := Or.intro_left b ha
-
--- b ⊢ a ∨ b
-example (ha : a) : Or b a := Or.intro_right b ha
-
-theorem Or.elim {c : Prop} (Or_ab : Or a b) (left : a → c) (right : b → c) : c :=
-  match Or_ab with
-  | inl h => left h
-  | inr h => right h
-
+-- a or b, a implies c, b implies c
+--   proves c
 -- a ∨ b, a → c, b → c ⊢ c
-example (Or_ab : Or a b) (ac : a → c) (bc : b → c) : c := Or_ab.elim ac bc
+theorem Or.elim {c : Prop}
+    (or_ab : Or a b) (ac : a → c) (bc : b → c) : c :=
+  match or_ab with
+  | inl ha => ac ha
+  | inr hb => bc hb
 
-theorem Or.symm (Or_ab : Or a b) : Or b a :=
-  Or_ab.elim (fun ha => Or.intro_right b ha) (fun hb => Or.intro_left a hb)
-
+-- a or b
+--   proves b or a
 -- a ∨ b ⊢ b ∨ a
-example (Or_ab: Or a b) : Or b a := Or_ab.symm
+theorem Or.symm (or_ab : Or a b) : Or b a :=
+  or_ab.elim
+    (fun ha => Or.intro_right b ha)
+    (fun hb => Or.intro_left a hb)
 
+-- a or b, not a
+--   proves b
+-- a ∨ b, ¬a ⊢ b
 theorem Or.resolve_left  (or_ab : Or a b) (na : Not a) : b :=
   or_ab.elim (fun ha => na.elim ha) id
 
--- a ∨ b, ¬a ⊢ b
-example (Or_ab : Or a b) (Not_a : Not a) : b := Or_ab.resolve_left Not_a
-
+-- a or b, not b
+--   proves a
+-- a ∨ b, ¬b ⊢ a
 theorem Or.resolve_right (or_ab: Or a b) (nb : Not b) : a :=
   or_ab.elim id (fun hb => nb.elim hb)
 
--- a ∨ b, ¬b ⊢ a
-example (Or_ab: Or a b) (Not_b : Not b) : a := Or_ab.resolve_right Not_b
-
+-- not a or b, a
+--   proves b
+-- ¬a ∨ b, a ⊢ b
 theorem Or.neg_resolve_left (or_nab : Or (Not a) b) (ha : a) : b :=
   or_nab.elim (fun na => na.elim ha) id
 
--- ¬a ∨ b, a ⊢ b
-example (Or_Not_a_b : Or (Not a) b) (ha : a) : b := Or_Not_a_b.neg_resolve_left ha
-
+-- a or not b, b
+--   proves not a
+-- a ∨ ¬b, b ⊢ ¬a
 theorem Or.neg_resolve_right (or_anb : Or a (Not b)) (hb : b) : a :=
   or_anb.elim id (fun nb => nb.elim hb)
-
--- a ∨ ¬b, b ⊢ ¬a
-example (Or_a_Not_b : Or a (Not b)) (hb : b) : a := Or_a_Not_b.neg_resolve_right hb
 
 /- Iff -/
 
