@@ -26,16 +26,37 @@ example : False → b := fun false => false.elim
 
 def Not (a : Prop) : Prop := a → False
 
-example : Not False := fun false => false
+theorem not_false : Not False := fun false => false
+
+theorem not_not_intro {p : Prop} (hp : p) : Not (Not p) :=
+  fun Not_p => Not_p hp
+
+example : Not (Not True) := fun Not_true => Not_true True.intro
+example : Not (Not True) := not_not_intro True.intro
+
+theorem mt {a b : Prop} (ab : a → b) (Not_b : Not b) : Not a :=
+  fun ha => Not_b (ab ha)
+
+theorem Not.imp {a b : Prop} (Not_b : Not b) (ab : a → b) : Not a := mt ab Not_b
 
 def absurd {a : Prop} {b : Sort v} (ha : a) (Not_a : Not a) : b :=
   have false : False := Not_a ha
   false.elim
 
+def Not.elim {α : Sort _} (Not_a : Not a) (ha : a) : α := absurd ha Not_a
+
 example (ha : a) (Not_a : Not a) : b := absurd ha Not_a
 example (ha : a) : Not a → b := fun Not_a => absurd ha Not_a
 example : a → Not a → b := fun ha => fun Not_a => absurd ha Not_a
 example : a → Not a → b := fun ha Not_a => absurd ha Not_a
+
+theorem Not.intro {a : Prop} (af : a → False) : Not a := af
+
+/- Implies -/
+
+theorem imp_intro {α β : Prop} (h : α) : β → α := fun _ => h
+
+theorem imp_imp_imp {a b c d : Prop} (ca : c → a) (bd : b → d) : (a → b) → (c → d) := fun ab => fun hc => bd (ab (ca hc))
 
 /- And -/
 
@@ -57,6 +78,8 @@ theorem And.symm (And_ab: And a b) : And b a :=
   have hb : b := And_ab.right
   intro hb ha
 
+abbrev And.elim (ab : a → b → α) (And_ab : And a b) : α := ab And_ab.left And_ab.right
+
 /- Or -/
 
 inductive Or (a b : Prop) : Prop where
@@ -76,6 +99,9 @@ theorem Or.elim {c : Prop} (Or_ab : Or a b) (left : a → c) (right : b → c) :
   match Or_ab with
   | inl h => left h
   | inr h => right h
+
+theorem Or.symm (Or_ab : Or a b) : Or b a :=
+  Or_ab.elim (fun ha => Or.intro_right b ha) (fun hb => Or.intro_left a hb)
 
 theorem Or.resolve_left  (Or_ab : Or a b) (Not_a : Not a) : b :=
   Or_ab.elim (fun ha => absurd ha Not_a) id
@@ -101,6 +127,79 @@ example : Iff False False := Iff.intro (fun false => false) (fun false => false)
 example (ab : a → b) (ba : b → a) : Iff a b := Iff.intro ab ba
 example (Iff_ab : Iff a b) : a → b := Iff_ab.mp
 example (Iff_ab : Iff a b) : b → a := Iff_ab.mpr
+
+theorem iff_iff_implies_and_implies {a b : Prop} : Iff (Iff a b) (And (a → b) (b → a)) :=
+  Iff.intro (fun Iff_ab => And.intro Iff_ab.mp Iff_ab.mpr) (fun And_ab_ba => Iff.intro And_ab_ba.left And_ab_ba.right)
+
+theorem Iff.refl (a : Prop) : Iff a a :=
+  Iff.intro (fun ha => ha) (fun ha => ha)
+
+theorem Iff.rfl {a : Prop} : Iff a a := Iff.refl a
+
+theorem Iff.trans (Iff_ab : Iff a b) (Iff_bc : Iff b c) : Iff a c :=
+  Iff.intro (fun ha => Iff_bc.mp (Iff_ab.mp ha)) (fun hc => Iff_ab.mpr (Iff_bc.mpr hc))
+
+theorem Iff.symm (Iff_ab : Iff a b) : Iff b a := Iff.intro Iff_ab.mpr Iff_ab.mp
+
+def Iff.elim (ab_ba : (a → b) → (b → a) → α) (Iff_ab : Iff a b) : α := ab_ba Iff_ab.mp Iff_ab.mpr
+
+axiom propext {a b : Prop} : (Iff a b) → Eq a b
+
+theorem Iff.subst {a b : Prop} {p : Prop → Prop} (Iff_ab : Iff a b) (pa : p a) : p b :=
+  Eq.subst (propext Iff_ab) pa
+
+theorem iff_of_true (ha : a) (hb : b) : Iff a b := Iff.intro (fun _ => hb) (fun _ => ha)
+theorem iff_of_false (ha : Not a) (hb : Not b) : Iff a b := Iff.intro ha.elim hb.elim
+theorem of_iff_true (Iff_at : Iff a True) : a := Iff_at.mpr True.intro
+theorem iff_true_intro (ha : a) : Iff a True := iff_of_true ha True.intro
+theorem not_of_iff_false : (Iff p False) → Not p := Iff.mp
+theorem iff_false_intro (Not_a : Not a) : Iff a False := iff_of_false Not_a (fun false => false)
+
+theorem Iff.comm : Iff (Iff a b) (Iff b a) := Iff.intro Iff.symm Iff.symm
+theorem iff_comm : Iff (Iff a b) (Iff b a) := Iff.comm
+
+theorem And.comm : Iff (And a b) (And b a) := Iff.intro And.symm And.symm
+theorem and_comm : Iff (And a b) (And b a) := And.comm
+
+theorem Or.comm : Iff (Or a b) (Or b a) := Iff.intro Or.symm Or.symm
+theorem or_comm : Iff (Or a b) (Or b a) := Or.comm
+
+theorem not_congr (Iff_ab : Iff a b) : Iff (Not a) (Not b) := Iff.intro (mt Iff_ab.mpr) (mt Iff_ab.mp)
+
+theorem not_not_not : Iff (Not (Not (Not a))) (Not a) := Iff.intro (mt not_not_intro) not_not_intro
+
+theorem iff_def  : Iff (Iff a b) (And (a → b) (b → a)) := iff_iff_implies_and_implies
+theorem iff_def' : Iff (Iff a b) (And (b → a) (a → b)) := Iff.trans iff_def And.comm
+
+/- Exists -/
+
+inductive Exists {α : Sort u} (p : α → Prop) : Prop where
+  | intro (w : α) (pw : p w) : Exists p
+
+theorem Exists.elim {α : Sort u} {p : α → Prop} {b : Prop}
+   (Exists_px : Exists (fun x => p x)) (All_px : ∀ (a : α), p a → b) : b :=
+  match Exists_px with
+  | intro a pa => All_px a pa
+
+/- Set -/
+
+class HasSubset (α : Type u) where
+  Subset : α → α → Prop
+export HasSubset (Subset)
+
+class HasSSubset (α : Type u) where
+  SSubset : α → α → Prop
+export HasSSubset (SSubset)
+
+abbrev Superset [HasSubset α] (a b : α) := Subset b a
+
+abbrev SSuperset [HasSSubset α] (a b : α) := SSubset b a
+
+class Union (α : Type u) where
+  union : α → α → α
+
+class Inter (α : Type u) where
+  inter : α → α → α
 
 /- Eq -/
 
