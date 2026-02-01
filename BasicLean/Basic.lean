@@ -51,37 +51,45 @@ theorem not_not_intro (ha : a) : Not (Not a) :=
 -- ⊢ ¬¬⊤
 example : Not (Not True) := not_not_intro True.intro
 
--- a implies b, not b prove not a
+-- a implies b, not b
+--   proves not a
 -- a → b, ¬b ⊢ ¬a
-theorem Not.imp (nb : Not b) (ab : a → b) : Not a := fun ha => nb (ab ha)
+theorem Not.imp (nb : Not b) (ab : a → b) : Not a :=
+  fun ha => nb (ab ha)
 
--- not a, a proves b
+-- not a, a
+--   proves b
 -- ¬a, a ⊢ b
 def Not.elim (na : Not a) (ha : a) : b :=
   have false : False := na ha
   false.elim
 
+-- a proves (not a) implies b
 -- a ⊢ ¬a → b
 example (ha : a) : Not a → b := fun na => na.elim ha
 
+-- a implies (not a) implies b
 -- ⊢ a → ¬a → b
 example : a → Not a → b := fun ha => fun na => na.elim ha
 example : a → Not a → b := fun ha na => na.elim ha
 
+-- a implies false
+--   proves not a
 -- a → ⊥ ⊢ ¬a
 theorem Not.intro (af : a → False) : Not a := af
 
 /- Implies -/
 
-theorem imp_intro {α β : Prop} (h : α) : β → α := fun _ => h
-
+-- a proves b implies a
 -- a ⊢ b → a
-example (ha : a) : b → a := fun _ => ha
+theorem imp_intro {a : Prop} (ha : a) : b → a := fun _ => ha
 
-theorem imp_imp_imp {a b c d : Prop} (ca : c → a) (bd : b → d) : (a → b) → (c → d) := fun ab => fun hc => bd (ab (ca hc))
-
+-- c implies a, b implies d
+--   proves (a implies b) implies (c implies d)
 -- c → a, b → d ⊢ (a → b) → (c → d)
-example (ca : c → a) (bd : b → d) : (a → b) → (c → d) := imp_imp_imp ca bd
+theorem imp_imp_imp {d : Prop}
+    (ca : c → a) (bd : b → d) : (a → b) → (c → d) :=
+  fun ab => fun hc => bd (ab (ca hc))
 
 /- And -/
 
