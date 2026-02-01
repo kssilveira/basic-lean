@@ -313,7 +313,7 @@ inductive Exists {α : Sort u} (p : α → Prop) : Prop where
   | intro (w : α) (pw : p w) : Exists p
 
 theorem Exists.elim {α : Sort u} {p : α → Prop} {b : Prop}
-   (Exists_px : Exists (fun x => p x)) (All_px : ∀ (a : α), p a → b) : b :=
+   (Exists_px : Exists (fun x => p x)) (All_px : (a : α) → p a → b) : b :=
   match Exists_px with
   | intro a pa => All_px a pa
 
@@ -448,10 +448,64 @@ def Nat.add (a b : Nat) : Nat :=
   | zero           => a
   | succ b_minus_1 => succ (add a b_minus_1)
 
+theorem Nat.add_zero (n : Nat) : Eq (add n zero) n := Eq.refl (add n zero)
+
+theorem Nat.zero_add (n : Nat) : Eq (add zero n) n :=
+  match n with
+  | zero    => Eq.refl zero
+  | succ n  => congrArg succ (Nat.zero_add n)
+
+theorem Nat.succ_add (n m : Nat) : Eq (add (succ n) m) (succ (add n m)) :=
+  match n, m with
+  | n, zero   => Eq.refl (succ (add n zero))
+  | n, succ m => congrArg succ (succ_add n m)
+
+theorem Nat.add_succ (n m : Nat) : Eq (add n (succ m)) (succ (add n m)) := Eq.refl (succ (add n m))
+
+theorem Nat.add_comm (n m : Nat) : Eq (add n m) (add m n) :=
+  match n, m with
+  | n, zero   => Eq.symm (Nat.zero_add n)
+  | n, succ m =>
+    (congrArg succ (add_comm n m)).trans (succ_add m n).symm
+
 def Nat.mul (a b : Nat) : Nat :=
   match b with
   | zero           => zero
   | succ b_minus_1 => add a (mul a b_minus_1)
+
+theorem Nat.mul_zero (n : Nat) : Eq (mul n zero) zero := Eq.refl (mul n zero)
+
+theorem Nat.mul_succ (n m : Nat) : Eq (mul n (succ m)) (add n (mul n m)) := Eq.refl (add n (mul n m))
+
+theorem Nat.zero_mul (n : Nat) : Eq (mul zero n) zero :=
+  match n with
+  | zero   => Eq.refl zero
+  | succ n =>
+    ((zero_mul n).symm.trans ((zero_add (mul zero n)).symm.trans (mul_succ zero n).symm)).symm
+
+theorem Nat.mul_one (n : Nat) : Eq (mul n (succ zero)) n := Eq.refl (mul n (succ zero))
+
+theorem Nat.succ_mul (n m : Nat) : Eq (mul (succ n) m) (add (mul n m) m) :=
+  by induction m with
+  | zero => exact Eq.refl (add (mul n zero) zero)
+  | succ m ih =>
+    have ha := mul_succ (succ n) m
+    have hb := add_succ n m
+    have hc := mul_succ n m
+    have hd := congrArg (fun x => n.succ.add x) ih
+    have he := ha.trans hd
+    have hf := (congrArg (fun x => add x m.succ) hc).symm
+    have hg := add_comm n (mul n m)
+    sorry
+
+theorem Nat.mul_comm (n m : Nat) : Eq (mul n m) (mul m n) :=
+  match n, m with
+  | n, zero   => Eq.trans (mul_zero n) (zero_mul n).symm
+  | n, succ m =>
+    (((mul_succ n m).trans (add_comm n (mul n m))).trans (congrArg (fun x => add x n) (mul_comm n m))).trans (succ_mul m n).symm
+
+theorem Nat.one_mul (n : Nat) : Eq (mul (succ zero) n) n :=
+  (mul_comm n (succ zero)).symm.trans (mul_one n)
 
 def Nat.pow (a b : Nat) : Nat :=
   match b with
