@@ -186,25 +186,25 @@ theorem Or.symm (or_ab : Or a b) : Or b a :=
 --   proves b
 -- a ∨ b, ¬a ⊢ b
 theorem Or.resolve_left  (or_ab : Or a b) (na : Not a) : b :=
-  or_ab.elim (fun ha => na.elim ha) id
+  or_ab.elim (fun ha => na.elim ha) (fun hb => hb)
 
 -- a or b, not b
 --   proves a
 -- a ∨ b, ¬b ⊢ a
 theorem Or.resolve_right (or_ab: Or a b) (nb : Not b) : a :=
-  or_ab.elim id (fun hb => nb.elim hb)
+  or_ab.elim (fun ha => ha) (fun hb => nb.elim hb)
 
 -- not a or b, a
 --   proves b
 -- ¬a ∨ b, a ⊢ b
 theorem Or.neg_resolve_left (or_nab : Or (Not a) b) (ha : a) : b :=
-  or_nab.elim (fun na => na.elim ha) id
+  or_nab.elim (fun na => na.elim ha) (fun hb => hb)
 
 -- a or not b, b
---   proves not a
--- a ∨ ¬b, b ⊢ ¬a
+--   proves a
+-- a ∨ ¬b, b ⊢ a
 theorem Or.neg_resolve_right (or_anb : Or a (Not b)) (hb : b) : a :=
-  or_anb.elim id (fun nb => nb.elim hb)
+  or_anb.elim (fun ha => ha) (fun nb => nb.elim hb)
 
 /- Iff -/
 
@@ -213,97 +213,147 @@ structure Iff (a b : Prop) : Prop where
   mp    : a → b
   mpr   : b → a
 
+-- true iff true
 -- ⊢ ⊤ ↔ ⊤
-example : Iff True True := Iff.intro (fun _ => True.intro) (fun _ => True.intro)
+example : Iff True True :=
+  Iff.intro (fun _ => True.intro) (fun _ => True.intro)
 
+-- false iff false
 -- ⊢ ⊥ ↔ ⊥
-example : Iff False False := Iff.intro (fun false => false) (fun false => false)
+example : Iff False False :=
+  Iff.intro (fun false => false) (fun false => false)
 
+-- a implies b, b implies a
+--   proves a iff b
 -- a → b, b → a ⊢ a ↔ b
 example (ab : a → b) (ba : b → a) : Iff a b := Iff.intro ab ba
 
+-- a iff b
+--   proves a implies b
 -- a ↔ b ⊢ a → b
-example (Iff_ab : Iff a b) : a → b := Iff_ab.mp
+example (iff_ab : Iff a b) : a → b := iff_ab.mp
 
+-- a iff b
+--   proves b implies a
 -- a ↔ b ⊢ b → a
-example (Iff_ab : Iff a b) : b → a := Iff_ab.mpr
+example (iff_ab : Iff a b) : b → a := iff_ab.mpr
 
-theorem iff_iff_implies_and_implies {a b : Prop} : Iff (Iff a b) (And (a → b) (b → a)) :=
-  Iff.intro (fun Iff_ab => And.intro Iff_ab.mp Iff_ab.mpr) (fun And_ab_ba => Iff.intro And_ab_ba.left And_ab_ba.right)
-
+-- (a iff b) iff ((a implies b) and (b implies a))
 -- ⊢ (a ↔ b) ↔ ((a → b) ∧ (b → a))
-example : Iff (Iff a b) (And (a → b) (b → a)) := iff_iff_implies_and_implies
+theorem iff_iff_implies_and_implies :
+    Iff (Iff a b) (And (a → b) (b → a)) :=
+  Iff.intro
+    (fun iff_ab => And.intro iff_ab.mp iff_ab.mpr)
+    (fun and_ab_ba => Iff.intro and_ab_ba.left and_ab_ba.right)
 
+-- a iff a
+-- ⊢ a ↔ a
 theorem Iff.refl (a : Prop) : Iff a a :=
   Iff.intro (fun ha => ha) (fun ha => ha)
-theorem Iff.rfl {a : Prop} : Iff a a := Iff.refl a
 
--- ⊢ a ↔ a
-example : Iff a a := Iff.refl a
-
-theorem Iff.trans (Iff_ab : Iff a b) (Iff_bc : Iff b c) : Iff a c :=
-  Iff.intro (fun ha => Iff_bc.mp (Iff_ab.mp ha)) (fun hc => Iff_ab.mpr (Iff_bc.mpr hc))
-
+-- a iff b, b iff c
+--   proves a iff c
 -- a ↔ b, b ↔ c ⊢ a ↔ c
-example (Iff_ab : Iff a b) (Iff_bc : Iff b c) : Iff a c := Iff_ab.trans Iff_bc
+theorem Iff.trans
+    (iff_ab : Iff a b) (iff_bc : Iff b c) : Iff a c :=
+  Iff.intro
+    (fun ha => iff_bc.mp (iff_ab.mp ha))
+    (fun hc => iff_ab.mpr (iff_bc.mpr hc))
 
-theorem Iff.symm (Iff_ab : Iff a b) : Iff b a := Iff.intro Iff_ab.mpr Iff_ab.mp
-
+-- a iff b
+--   proves b iff a
 -- a ↔ b ⊢ b ↔ a
-example  (Iff_ab : Iff a b) : Iff b a := Iff_ab.symm
+theorem Iff.symm (iff_ab : Iff a b) : Iff b a :=
+  Iff.intro iff_ab.mpr iff_ab.mp
 
-def Iff.elim (ab_ba : (a → b) → (b → a) → α) (Iff_ab : Iff a b) : α := ab_ba Iff_ab.mp Iff_ab.mpr
-
+-- (a implies b) implies (b implies a) implies c, a iff b
+--   proves c
 -- (a → b) → (b → a) → c, a ↔ b ⊢ c
-example (ab_ba : (a → b) → (b → a) → c) (Iff_ab : Iff a b) : c := Iff_ab.elim ab_ba
+def Iff.elim
+    (ab_ba : (a → b) → (b → a) → c) (iff_ab : Iff a b) : c :=
+  ab_ba iff_ab.mp iff_ab.mpr
 
-theorem iff_of_true (ha : a) (hb : b) : Iff a b := Iff.intro (fun _ => hb) (fun _ => ha)
-
+-- a, b
+--   proves a iff b
 -- a, b ⊢ a ↔ b
-example (ha : a) (hb : b) : Iff a b := iff_of_true ha hb
+theorem iff_of_true (ha : a) (hb : b) : Iff a b :=
+  Iff.intro (fun _ => hb) (fun _ => ha)
 
-theorem iff_of_false (ha : Not a) (hb : Not b) : Iff a b := Iff.intro ha.elim hb.elim
-
+-- not a, not b
+--   proves a iff b
 -- ¬a, ¬b ⊢ a ↔ b
-example (Not_a : Not a) (Not_b : Not b) : Iff a b := iff_of_false Not_a Not_b
+theorem iff_of_false (na : Not a) (nb : Not b) : Iff a b :=
+  Iff.intro (fun ha => na.elim ha) (fun hb => nb.elim hb)
 
-theorem of_iff_true (Iff_at : Iff a True) : a := Iff_at.mpr True.intro
-theorem iff_true_intro (ha : a) : Iff a True := iff_of_true ha True.intro
-theorem not_of_iff_false : (Iff p False) → Not p := Iff.mp
-theorem iff_false_intro (Not_a : Not a) : Iff a False := iff_of_false Not_a (fun false => false)
+-- a iff true
+--   proves a
+-- a ↔ ⊤ ⊢ a
+theorem of_iff_true (iff_at : Iff a True) : a :=
+  iff_at.mpr True.intro
 
-theorem Iff.comm : Iff (Iff a b) (Iff b a) := Iff.intro Iff.symm Iff.symm
-theorem iff_comm : Iff (Iff a b) (Iff b a) := Iff.comm
+-- a proves a iff true
+-- a ⊢ a ↔ ⊤
+theorem iff_true_intro (ha : a) : Iff a True :=
+  iff_of_true ha True.intro
 
-theorem And.comm : Iff (And a b) (And b a) := Iff.intro And.symm And.symm
-theorem and_comm : Iff (And a b) (And b a) := And.comm
+-- a iff false
+--   proves not a
+-- a ↔ ⊥ ⊢ ¬a
+theorem not_of_iff_false : (Iff a False) → Not a := Iff.mp
 
-theorem Or.comm : Iff (Or a b) (Or b a) := Iff.intro Or.symm Or.symm
-theorem or_comm : Iff (Or a b) (Or b a) := Or.comm
+-- not a
+--   proves a iff false
+-- ¬a ⊢ a ↔ ⊥
+theorem iff_false_intro (na : Not a) : Iff a False :=
+  iff_of_false na (fun false => false)
 
+-- (a iff b) iff (b iff a)
+-- ⊢ (a ↔ b) ↔ (b ↔ a)
+theorem Iff.comm : Iff (Iff a b) (Iff b a) :=
+  Iff.intro Iff.symm Iff.symm
+
+-- (a and b) iff (b and a)
+-- ⊢ (a ∧ b) ↔ (b ∧ a)
+theorem And.comm : Iff (And a b) (And b a) :=
+  Iff.intro And.symm And.symm
+
+-- (a or b) iff (b or a)
+-- ⊢ (a ∨ b) ↔ (b ∨ a)
+theorem Or.comm : Iff (Or a b) (Or b a) :=
+  Iff.intro Or.symm Or.symm
+
+-- a iff b
+--   proves not a iff not b
+-- a ↔ b ⊢ ¬a ↔ ¬b
 theorem not_congr (Iff_ab : Iff a b) : Iff (Not a) (Not b) :=
   Iff.intro
     (fun na => na.imp Iff_ab.mpr)
     (fun nb => nb.imp Iff_ab.mp)
 
+-- not not not a iff not a
+-- ⊢ ¬¬¬a ↔ ¬a
 theorem not_not_not : Iff (Not (Not (Not a))) (Not a) :=
   Iff.intro
     (fun nnna => nnna.imp not_not_intro)
     (fun na => not_not_intro na)
 
-theorem iff_def  : Iff (Iff a b) (And (a → b) (b → a)) := iff_iff_implies_and_implies
-theorem iff_def' : Iff (Iff a b) (And (b → a) (a → b)) := Iff.trans iff_def And.comm
+-- (a iff b) iff (b implies a) and (a implies b)
+-- ⊢ (a ↔ b) ↔ (b → a) ∧ (a → b)
+theorem iff_def' : Iff (Iff a b) (And (b → a) (a → b)) :=
+  Iff.trans iff_iff_implies_and_implies And.comm
 
 /- Theorem Proving in Lean 4 - 3.6. Examples of Propositional Validities
 https://leanprover.github.io/theorem_proving_in_lean4/Propositions-and-Proofs/#examples-of-propositional-validities
 -/
 
+-- p and q iff q and p
 -- p ∧ q ↔ q ∧ p
 example : Iff (And p q) (And q p) :=
   Iff.intro
-    (fun And_pq => And.intro And_pq.right And_pq.left)
-    (fun And_qp => And.intro And_qp.right And_qp.left)
+    (fun and_pq => And.intro and_pq.right and_pq.left)
+    (fun and_qp => And.intro and_qp.right and_qp.left)
 
+-- p or q iff q or p
 -- p ∨ q ↔ q ∨ p
 example : Iff (Or p q) (Or q p) :=
   Iff.intro
