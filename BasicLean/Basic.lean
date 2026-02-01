@@ -14,7 +14,7 @@ example : a → True := fun _ => True.intro
 
 inductive False : Prop
 
-example : False → False := fun x => x
+example : False → False := fun false => false
 
 def False.elim {b : Sort u} (false : False) : b := false.rec
 
@@ -26,7 +26,7 @@ example : False → b := fun false => false.elim
 
 def Not (a : Prop) : Prop := a → False
 
-example : Not False := fun x => x
+example : Not False := fun false => false
 
 def absurd {a : Prop} {b : Sort v} (ha : a) (Not_a : Not a) : b :=
   have false : False := Not_a ha
@@ -88,6 +88,19 @@ theorem Or.neg_resolve_left (Or_Not_a_b : Or (Not a) b) (ha : a) : b :=
 
 theorem Or.neg_resolve_right (Or_a_Not_b : Or a (Not b)) (hb : b) : a :=
   Or_a_Not_b.elim id (fun Not_b => absurd hb Not_b)
+
+/- Iff -/
+
+structure Iff (a b : Prop) : Prop where
+  intro ::
+  mp    : a → b
+  mpr   : b → a
+
+example : Iff True True := Iff.intro (fun _ => True.intro) (fun _ => True.intro)
+example : Iff False False := Iff.intro (fun false => false) (fun false => false)
+example (ab : a → b) (ba : b → a) : Iff a b := Iff.intro ab ba
+example (Iff_ab : Iff a b) : a → b := Iff_ab.mp
+example (Iff_ab : Iff a b) : b → a := Iff_ab.mpr
 
 /- Eq -/
 
