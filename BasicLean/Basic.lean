@@ -325,10 +325,10 @@ theorem Or.comm : Iff (Or a b) (Or b a) :=
 -- a iff b
 --   proves not a iff not b
 -- a ↔ b ⊢ ¬a ↔ ¬b
-theorem not_congr (Iff_ab : Iff a b) : Iff (Not a) (Not b) :=
+theorem not_congr (iff_ab : Iff a b) : Iff (Not a) (Not b) :=
   Iff.intro
-    (fun na => na.imp Iff_ab.mpr)
-    (fun nb => nb.imp Iff_ab.mp)
+    (fun na => na.imp iff_ab.mpr)
+    (fun nb => nb.imp iff_ab.mp)
 
 -- not not not a iff not a
 -- ⊢ ¬¬¬a ↔ ¬a
@@ -506,90 +506,61 @@ example : Not (Iff p (Not p)) :=
 example : (p → q) → (Not q → Not p) :=
   fun pq => fun nq => fun hp => nq (pq hp)
 
-/- Exists -/
-
-inductive Exists {α : Sort u} (p : α → Prop) : Prop where
-  | intro (w : α) (pw : p w) : Exists p
-
-theorem Exists.elim {α : Sort u} {p : α → Prop} {b : Prop}
-   (Exists_px : Exists (fun x => p x)) (All_px : (a : α) → p a → b) : b :=
-  match Exists_px with
-  | intro a pa => All_px a pa
-
-/- Set -/
-
-class HasSubset (α : Type u) where
-  Subset : α → α → Prop
-export HasSubset (Subset)
-
-class HasSSubset (α : Type u) where
-  SSubset : α → α → Prop
-export HasSSubset (SSubset)
-
-abbrev Superset [HasSubset α] (a b : α) := Subset b a
-
-abbrev SSuperset [HasSSubset α] (a b : α) := SSubset b a
-
-class Union (α : Type u) where
-  union : α → α → α
-
-class Inter (α : Type u) where
-  inter : α → α → α
-
 /- Eq -/
 
 inductive Eq : α → α → Prop where
   | refl (a : α) : Eq a a
 
-example : Eq a a := Eq.refl a
+def id (a : α) : α := a
 
-def id {α : Sort u} (a : α) : α := a
-
+-- ⊢ (id a) = a
 theorem id_eq (a : α) : Eq (id a) a := Eq.refl a
 
-example : Eq (id a) a := id_eq a
-
+-- ⊢ a = (id a)
 theorem eq_id (a : α) : Eq a (id a) := Eq.refl a
 
-example : Eq a (id a) := eq_id a
+abbrev Eq.ndrec {motive : α → Sort u}
+    (m : motive a) (h : Eq a b) : motive b :=
+  h.rec m
 
-abbrev Eq.ndrec.{u, v} {α : Sort v} {a : α} {motive : α → Sort u} (m : motive a) {b : α} (h : Eq a b) : motive b := h.rec m
+-- a = b ⊢ f a = f b
+theorem Eq.subst {motive : α → Prop}
+    (eq_ab : Eq a b) (motive_a : motive a) : motive b :=
+  ndrec motive_a eq_ab
 
-theorem Eq.subst {α : Sort u} {motive : α → Prop} {a b : α} (Eq_ab : Eq a b) (motive_a : motive a) : motive b := ndrec motive_a Eq_ab
+-- ⊢ a ↔ b → a = b
+axiom propext : (Iff a b) → Eq a b
 
-axiom propext {a b : Prop} : (Iff a b) → Eq a b
+-- a ↔ b, p a ⊢ p b
+theorem Iff.subst {p : Prop → Prop}
+    (iff_ab : Iff a b) (pa : p a) : p b :=
+  Eq.subst (propext iff_ab) pa
 
-theorem Iff.subst {a b : Prop} {p : Prop → Prop} (Iff_ab : Iff a b) (pa : p a) : p b :=
-  Eq.subst (propext Iff_ab) pa
+-- a = b ⊢ b = a
+theorem Eq.symm (eq_ab : Eq a b) : Eq b a :=
+  have eq_aa : Eq a a := Eq.refl a
+  subst (motive := fun x => Eq x a) eq_ab eq_aa
 
-theorem Eq.symm {α : Sort u} {a b : α} (Eq_ab : Eq a b) : Eq b a :=
-  have Eq_aa : Eq a a := Eq.refl a
-  subst (motive := fun x => Eq x a) Eq_ab Eq_aa
+-- a = b, b = c ⊢ a = c
+theorem Eq.trans (eq_ab : Eq a b) (eq_bc : Eq b c) : Eq a c :=
+  subst (motive := fun x => Eq a x) eq_bc eq_ab
 
-example (Eq_ab: Eq a b): Eq b a := Eq_ab.symm
+-- a = b ⊢ f a = f b
+theorem congrArg (f : α → β) (eq_ab: Eq a b) : Eq (f a) (f b) :=
+  have eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
+  Eq.subst (motive := fun x => Eq (f a) (f x)) eq_ab eq_fa_fa
 
-theorem Eq.trans {α : Sort u} {a b c : α} (Eq_ab : Eq a b) (Eq_bc : Eq b c) : Eq a c :=
-  subst (motive := fun x => Eq a x) Eq_bc Eq_ab
+-- f = g ⊢ f a = g a
+theorem congrFun {β : α → Sort v} {f g : (x : α) → β x}
+    (eq_fg : Eq f g) (a : α) : Eq (f a) (g a) :=
+  have eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
+  Eq.subst (motive := fun x => Eq (f a) (x a)) eq_fg eq_fa_fa
 
-example (Eq_ab : Eq a b) (Eq_bc : Eq b c) : Eq a c := Eq.trans Eq_ab Eq_bc
-
-theorem congrArg {α : Sort u} {β : Sort v} {a b : α} (f : α → β) (Eq_ab: Eq a b) : Eq (f a) (f b) :=
-  have Eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
-  Eq.subst (motive := fun x => Eq (f a) (f x)) Eq_ab Eq_fa_fa
-
-example (f : α → β) (Eq_ab: Eq a b) : Eq (f a) (f b) := congrArg f Eq_ab
-
-theorem congrFun {α : Sort u} {β : α → Sort v} {f g : (x : α) → β x} (Eq_fg : Eq f g) (a : α) : Eq (f a) (g a) :=
-  have Eq_fa_fa : Eq (f a) (f a) := Eq.refl (f a)
-  Eq.subst (motive := fun x => Eq (f a) (x a)) Eq_fg Eq_fa_fa
-
-example {f g : α → β} (Eq_fg : Eq f g) (a : α) : Eq (f a) (g a) := congrFun Eq_fg a
-
-theorem congr {α : Sort u} {β : Sort v} {f g : α → β} {a b : α} (Eq_fg : Eq f g) (Eq_ab : Eq a b) : Eq (f a) (g b) :=
-  have Eq_fa_fb : Eq (f a) (f b) := congrArg f Eq_ab
-  Eq.subst (motive := fun x => Eq (f a) (x b)) Eq_fg Eq_fa_fb
-
-example {f g : α → β} (Eq_fg : Eq f g) (Eq_ab : Eq a b) : Eq (f a) (g b) := congr Eq_fg Eq_ab
+-- f = g, a = b ⊢ f a = g b
+theorem congr {f g : α → β} {a b : α}
+    (eq_fg : Eq f g) (eq_ab : Eq a b) : Eq (f a) (g b) :=
+  have eq_fa_fb : Eq (f a) (f b) := congrArg f eq_ab
+  Eq.subst (motive := fun x => Eq (f a) (x b)) eq_fg eq_fa_fb
 
 /- Bool -/
 
@@ -606,30 +577,30 @@ theorem eq_false_of_ne_true {b : Bool} (neq_bt : Not (Eq b true)) : Eq b false :
     have eq_tt : Eq true true := Eq.refl true
     neq_bt.elim eq_tt
 
-theorem eq_true_of_ne_false {b : Bool} (Not_Eq_b_false : Not (Eq b false)) : Eq b true :=
+theorem eq_true_of_ne_false {b : Bool} (neq_bf : Not (Eq b false)) : Eq b true :=
   match b with
   | true  => Eq.refl true
   | false =>
-    have Eq_false_false : Eq false false := Eq.refl false
-    Not_Eq_b_false.elim Eq_false_false
+    have eq_ff : Eq false false := Eq.refl false
+    neq_bf.elim eq_ff
 
-def Eq.Root {α : Sort u} {a b : α } (Eq_ab : Eq a b) : _root_.Eq a b :=
-  match Eq_ab with
+def Eq.Root {α : Sort u} {a b : α } (eq_ab : Eq a b) : _root_.Eq a b :=
+  match eq_ab with
   | refl a => _root_.Eq.refl a
 
-def Eq.FromRoot {α : Sort u} {a b : α } (RootEq_ab : _root_.Eq a b) : Eq a b :=
-  match RootEq_ab with
+def Eq.FromRoot {α : Sort u} {a b : α } (Rooteq_ab : _root_.Eq a b) : Eq a b :=
+  match Rooteq_ab with
   | _root_.Eq.refl a => Eq.refl a
 
-theorem ne_false_of_eq_true {b : Bool} (Eq_b_true : Eq b true) : Not (Eq b false) :=
+theorem ne_false_of_eq_true {b : Bool} (eq_b_true : Eq b true) : Not (Eq b false) :=
   match b with
-  | true  => fun Eq_true_false => Bool.noConfusion Eq_true_false.Root
-  | false => Bool.noConfusion Eq_b_true.Root
+  | true  => fun eq_true_false => Bool.noConfusion eq_true_false.Root
+  | false => Bool.noConfusion eq_b_true.Root
 
-theorem ne_true_of_eq_false {b : Bool} (Eq_b_false : Eq b false) : Not (Eq b true) :=
+theorem ne_true_of_eq_false {b : Bool} (eq_b_false : Eq b false) : Not (Eq b true) :=
   match b with
-  | true  => Bool.noConfusion Eq_b_false.Root
-  | false => fun Eq_false_true => Bool.noConfusion Eq_false_true.Root
+  | true  => Bool.noConfusion eq_b_false.Root
+  | false => fun eq_false_true => Bool.noConfusion eq_false_true.Root
 
 /- Nat -/
 
@@ -700,23 +671,23 @@ def Nat.beq : Nat → Nat → Bool
   | succ _, zero   => false
   | succ n, succ m => beq n m
 
-theorem Nat.eq_of_beq_eq_true {n m : Nat} (Eq_beq_nm_true : Eq (beq n m) true) : Eq n m :=
+theorem Nat.eq_of_beq_eq_true {n m : Nat} (eq_beq_nm_true : Eq (beq n m) true) : Eq n m :=
   match n, m with
   | zero,   zero   => Eq.refl Nat.zero
-  | zero,   succ _ => Bool.noConfusion Eq_beq_nm_true.Root
-  | succ _, zero   => Bool.noConfusion Eq_beq_nm_true.Root
+  | zero,   succ _ => Bool.noConfusion eq_beq_nm_true.Root
+  | succ _, zero   => Bool.noConfusion eq_beq_nm_true.Root
   | succ n, succ m =>
-    have Eq_nm : Eq n m := eq_of_beq_eq_true Eq_beq_nm_true
-    congrArg succ Eq_nm
+    have eq_nm : Eq n m := eq_of_beq_eq_true eq_beq_nm_true
+    congrArg succ eq_nm
 
-theorem Nat.ne_of_beq_eq_false {n m : Nat} (Eq_beq_nm_false : Eq (beq n m) false) : Not (Eq n m) :=
+theorem Nat.ne_of_beq_eq_false {n m : Nat} (eq_beq_nm_false : Eq (beq n m) false) : Not (Eq n m) :=
   match n, m with
-  | zero,   zero   => Bool.noConfusion Eq_beq_nm_false.Root
-  | zero,   succ _ => fun Eq_nm => Nat.noConfusion Eq_nm.Root
-  | succ _, zero   => fun Eq_nm => Nat.noConfusion Eq_nm.Root
-  | succ n, succ m => fun Eq_nm =>
-    have Not_Eq_nm : Not (Eq n m) := ne_of_beq_eq_false Eq_beq_nm_false
-    Nat.noConfusion Eq_nm.Root (fun RootEq_nm => Not_Eq_nm.elim (Eq.FromRoot RootEq_nm))
+  | zero,   zero   => Bool.noConfusion eq_beq_nm_false.Root
+  | zero,   succ _ => fun eq_nm => Nat.noConfusion eq_nm.Root
+  | succ _, zero   => fun eq_nm => Nat.noConfusion eq_nm.Root
+  | succ n, succ m => fun eq_nm =>
+    have neq_nm : Not (Eq n m) := ne_of_beq_eq_false eq_beq_nm_false
+    Nat.noConfusion eq_nm.Root (fun Rooteq_nm => neq_nm.elim (Eq.FromRoot Rooteq_nm))
 
 protected inductive Nat.le (n : Nat) : Nat → Prop
   | refl     : Nat.le n n
@@ -726,13 +697,13 @@ instance instLENat : LE Nat where
   le := Nat.le
 
 theorem Nat.not_succ_le_zero (n : Nat) : LE.le (succ n) zero → False :=
-  have Eq_m_zero_implies: ∀ m, Eq m zero → LE.le (succ n) m → False := fun _ Eq_m_zero Le_succ_n_m =>
+  have eq_m_zero_implies: ∀ m, Eq m zero → LE.le (succ n) m → False := fun _ eq_m_zero Le_succ_n_m =>
     le.casesOn (motive := fun m _ => Eq m Nat.zero → False) Le_succ_n_m
-      (fun Eq_succ_n_zero   => Nat.noConfusion Eq_succ_n_zero.Root)
-      (fun _ Eq_succ_m_zero => Nat.noConfusion Eq_succ_m_zero.Root)
-      Eq_m_zero
-  have Eq_zero_zero : Eq zero zero := Eq.refl zero
-  Eq_m_zero_implies zero Eq_zero_zero
+      (fun eq_succ_n_zero   => Nat.noConfusion eq_succ_n_zero.Root)
+      (fun _ eq_succ_m_zero => Nat.noConfusion eq_succ_m_zero.Root)
+      eq_m_zero
+  have eq_zero_zero : Eq zero zero := Eq.refl zero
+  eq_m_zero_implies zero eq_zero_zero
 
 theorem Nat.zero_le : (n : Nat) → LE.le zero n
   | zero   => Nat.le.refl
@@ -776,10 +747,10 @@ def Nat.ble : Nat → Nat → Bool
   | succ _, zero   => false
   | succ n, succ m => ble n m
 
-theorem Nat.le_of_ble_eq_true (Eq_ble_nm_true : Eq (Nat.ble n m) true) : LE.le n m :=
+theorem Nat.le_of_ble_eq_true (eq_ble_nm_true : Eq (Nat.ble n m) true) : LE.le n m :=
   match n, m with
   | zero,      _   => Nat.zero_le _
-  | succ _, succ _ => Nat.succ_le_succ (le_of_ble_eq_true Eq_ble_nm_true)
+  | succ _, succ _ => Nat.succ_le_succ (le_of_ble_eq_true eq_ble_nm_true)
 
 theorem Nat.ble_self_eq_true : (n : Nat) → Eq (Nat.ble n n) true
   | zero   => Eq.refl (ble zero zero)
