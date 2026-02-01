@@ -98,39 +98,50 @@ structure And (a b : Prop) : Prop where
   left  : a
   right : b
 
+-- true and true
 -- ⊢ ⊤ ∧ ⊤
 example : And True True := And.intro True.intro True.intro
 
+-- a proves a and a
 -- a ⊢ a ∧ a
 example (ha : a) : And a a := And.intro ha ha
 
+-- a implies a and a
 -- ⊢ a → a ∧ a
 example : a → And a a := fun ha => And.intro ha ha
 
+-- a, b
+--   proves a and b
 -- a, b ⊢ a ∧ b
 example (ha : a) (hb : b) : And a b := And.intro ha hb
 
+-- a implies b implies a and b
 -- ⊢ a → b → a ∧ b
 example : a → b → And a b := fun ha hb => And.intro ha hb
 
+-- a and b
+--   proves a
 -- a ∧ b ⊢ a
-example (And_ab : And a b) : a := And_ab.left
+example (and_ab : And a b) : a := and_ab.left
 
+-- a and b
+--   proves b
 -- a ∧ b ⊢ b
-example (And_ab : And a b) : b := And_ab.right
+example (and_ab : And a b) : b := and_ab.right
 
-theorem And.symm (And_ab: And a b) : And b a :=
-  have ha : a := And_ab.left
-  have hb : b := And_ab.right
+-- a and b
+--   proves b and a
+-- a ∧ b ⊢ b ∧ a
+theorem And.symm (and_ab: And a b) : And b a :=
+  have ha : a := and_ab.left
+  have hb : b := and_ab.right
   intro hb ha
 
--- a ∧ b ⊢ b ∧ a
-example (And_ab: And a b) : And b a := And_ab.symm
-
-abbrev And.elim (ab : a → b → α) (And_ab : And a b) : α := ab And_ab.left And_ab.right
-
+-- a implies b implies c, a and b
+--   proves c
 -- a → b → c, a ∧ b ⊢ c
-example (ab : a → b → c) (And_ab : And a b) : c := And_ab.elim ab
+abbrev And.elim (ab : a → b → c) (and_ab : And a b) : c :=
+  ab and_ab.left and_ab.right
 
 /- Or -/
 
