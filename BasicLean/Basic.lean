@@ -255,3 +255,24 @@ theorem Nat.not_succ_le_zero (n : Nat) : LE.le (succ n) zero → False :=
       Eq_m_zero
   have Eq_zero_zero : Eq zero zero := Eq.refl zero
   Eq_m_zero_implies zero Eq_zero_zero
+
+theorem Nat.zero_le : (n : Nat) → LE.le zero n
+  | zero   => Nat.le.refl
+  | succ n => Nat.le.step (zero_le n)
+
+theorem Nat.succ_le_succ : LE.le n m → LE.le (succ n) (succ m)
+  | Nat.le.refl   => Nat.le.refl
+  | Nat.le.step Le_nm => Nat.le.step (succ_le_succ Le_nm)
+
+theorem Nat.le_succ_of_le (Le_nm : LE.le n m) : LE.le n (succ m) :=
+  Nat.le.step Le_nm
+
+theorem Nat.le_trans {n m k : Nat} (Le_nm : LE.le n m) : LE.le m k → LE.le n k
+  | Nat.le.refl       => Le_nm
+  | Nat.le.step Le_mk => Nat.le.step (Nat.le_trans Le_nm Le_mk)
+
+theorem Nat.le_succ (n : Nat) : LE.le n (succ n) :=
+  Nat.le.step Nat.le.refl
+
+theorem Nat.le_refl (n : Nat) : LE.le n n :=
+  Nat.le.refl
