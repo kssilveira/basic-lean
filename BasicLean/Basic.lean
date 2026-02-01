@@ -485,28 +485,6 @@ theorem Nat.zero_mul (n : Nat) : Eq (mul zero n) zero :=
 
 theorem Nat.mul_one (n : Nat) : Eq (mul n (succ zero)) n := Eq.refl (mul n (succ zero))
 
-theorem Nat.succ_mul (n m : Nat) : Eq (mul (succ n) m) (add (mul n m) m) :=
-  by induction m with
-  | zero => exact Eq.refl (add (mul n zero) zero)
-  | succ m ih =>
-    have ha := mul_succ (succ n) m
-    have hb := add_succ n m
-    have hc := mul_succ n m
-    have hd := congrArg (fun x => n.succ.add x) ih
-    have he := ha.trans hd
-    have hf := (congrArg (fun x => add x m.succ) hc).symm
-    have hg := add_comm n (mul n m)
-    sorry
-
-theorem Nat.mul_comm (n m : Nat) : Eq (mul n m) (mul m n) :=
-  match n, m with
-  | n, zero   => Eq.trans (mul_zero n) (zero_mul n).symm
-  | n, succ m =>
-    (((mul_succ n m).trans (add_comm n (mul n m))).trans (congrArg (fun x => add x n) (mul_comm n m))).trans (succ_mul m n).symm
-
-theorem Nat.one_mul (n : Nat) : Eq (mul (succ zero) n) n :=
-  (mul_comm n (succ zero)).symm.trans (mul_one n)
-
 def Nat.pow (a b : Nat) : Nat :=
   match b with
   | zero           => succ zero
