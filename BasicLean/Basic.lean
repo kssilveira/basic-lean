@@ -7,69 +7,69 @@ noncomputable section
 inductive True : Prop where
   | intro : True
 
+-- true
 -- ⊢ ⊤
 example : True := True.intro
 
--- ⊢ p → ⊤
-example : p → True := fun _ => True.intro
+-- a implies true
+-- ⊢ a → ⊤
+example : a → True := fun _ => True.intro
 
 /- False -/
 
 inductive False : Prop
 
+-- false implies false
 -- ⊢ ⊥ → ⊥
 example : False → False := fun false => false
 
-def False.elim {p : Sort u} (false : False) : p := false.rec
 
--- ⊥ ⊢ p
-example (false : False) : p := False.elim false
-example (false : False) : p := false.elim
-example : False → p := fun false => false.elim
+-- false proves a
+-- ⊥ ⊢ a
+def False.elim (false : False) : a := false.rec
+example (false : False) : a := False.elim false
+example (false : False) : a := false.elim
+
+-- false implies a
+-- ⊢ ⊥ → a
+example : False → a := fun false => false.elim
 
 /- Not -/
 
 def Not (a : Prop) : Prop := a → False
 
+-- not false
 -- ⊢ ¬⊥
 theorem not_false : Not False := fun false => false
 
--- p ⊢ ¬¬p
-theorem not_not_intro {p : Prop} (hp : p) : Not (Not p) :=
-  fun Not_p => Not_p hp
+-- a proves not not a
+-- a ⊢ ¬¬a
+theorem not_not_intro (ha : a) : Not (Not a) :=
+  fun na => na ha
 
+-- not not true
 -- ⊢ ¬¬⊤
-example : Not (Not True) := fun Not_true => Not_true True.intro
 example : Not (Not True) := not_not_intro True.intro
 
-theorem mt {a b : Prop} (ab : a → b) (Not_b : Not b) : Not a :=
-  fun ha => Not_b (ab ha)
-
-theorem Not.imp {a b : Prop} (Not_b : Not b) (ab : a → b) : Not a := mt ab Not_b
-
+-- a implies b, not b prove not a
 -- a → b, ¬b ⊢ ¬a
-example (ab : a → b) (Not_b : Not b) : Not a := mt ab Not_b
+theorem Not.imp (nb : Not b) (ab : a → b) : Not a := fun ha => nb (ab ha)
 
-def absurd {a : Prop} {b : Sort v} (ha : a) (Not_a : Not a) : b :=
-  have false : False := Not_a ha
+-- not a, a proves b
+-- ¬a, a ⊢ b
+def Not.elim (na : Not a) (ha : a) : b :=
+  have false : False := na ha
   false.elim
 
-def Not.elim {α : Sort _} (Not_a : Not a) (ha : a) : α := absurd ha Not_a
-
--- a, ¬a ⊢ b
-example (ha : a) (Not_a : Not a) : b := absurd ha Not_a
-
 -- a ⊢ ¬a → b
-example (ha : a) : Not a → b := fun Not_a => absurd ha Not_a
+example (ha : a) : Not a → b := fun na => na.elim ha
 
 -- ⊢ a → ¬a → b
-example : a → Not a → b := fun ha => fun Not_a => absurd ha Not_a
-example : a → Not a → b := fun ha Not_a => absurd ha Not_a
-
-theorem Not.intro {a : Prop} (af : a → False) : Not a := af
+example : a → Not a → b := fun ha => fun na => na.elim ha
+example : a → Not a → b := fun ha na => na.elim ha
 
 -- a → ⊥ ⊢ ¬a
-example (af : a → False) : Not a := af
+theorem Not.intro (af : a → False) : Not a := af
 
 /- Implies -/
 
@@ -160,26 +160,26 @@ theorem Or.symm (Or_ab : Or a b) : Or b a :=
 -- a ∨ b ⊢ b ∨ a
 example (Or_ab: Or a b) : Or b a := Or_ab.symm
 
-theorem Or.resolve_left  (Or_ab : Or a b) (Not_a : Not a) : b :=
-  Or_ab.elim (fun ha => absurd ha Not_a) id
+theorem Or.resolve_left  (or_ab : Or a b) (na : Not a) : b :=
+  or_ab.elim (fun ha => na.elim ha) id
 
 -- a ∨ b, ¬a ⊢ b
 example (Or_ab : Or a b) (Not_a : Not a) : b := Or_ab.resolve_left Not_a
 
-theorem Or.resolve_right (Or_ab: Or a b) (Not_b : Not b) : a :=
-  Or_ab.elim id (fun hb => absurd hb Not_b)
+theorem Or.resolve_right (or_ab: Or a b) (nb : Not b) : a :=
+  or_ab.elim id (fun hb => nb.elim hb)
 
 -- a ∨ b, ¬b ⊢ a
 example (Or_ab: Or a b) (Not_b : Not b) : a := Or_ab.resolve_right Not_b
 
-theorem Or.neg_resolve_left (Or_Not_a_b : Or (Not a) b) (ha : a) : b :=
-  Or_Not_a_b.elim (fun Not_a => absurd ha Not_a) id
+theorem Or.neg_resolve_left (or_nab : Or (Not a) b) (ha : a) : b :=
+  or_nab.elim (fun na => na.elim ha) id
 
 -- ¬a ∨ b, a ⊢ b
 example (Or_Not_a_b : Or (Not a) b) (ha : a) : b := Or_Not_a_b.neg_resolve_left ha
 
-theorem Or.neg_resolve_right (Or_a_Not_b : Or a (Not b)) (hb : b) : a :=
-  Or_a_Not_b.elim id (fun Not_b => absurd hb Not_b)
+theorem Or.neg_resolve_right (or_anb : Or a (Not b)) (hb : b) : a :=
+  or_anb.elim id (fun nb => nb.elim hb)
 
 -- a ∨ ¬b, b ⊢ ¬a
 example (Or_a_Not_b : Or a (Not b)) (hb : b) : a := Or_a_Not_b.neg_resolve_right hb
@@ -259,9 +259,15 @@ theorem and_comm : Iff (And a b) (And b a) := And.comm
 theorem Or.comm : Iff (Or a b) (Or b a) := Iff.intro Or.symm Or.symm
 theorem or_comm : Iff (Or a b) (Or b a) := Or.comm
 
-theorem not_congr (Iff_ab : Iff a b) : Iff (Not a) (Not b) := Iff.intro (mt Iff_ab.mpr) (mt Iff_ab.mp)
+theorem not_congr (Iff_ab : Iff a b) : Iff (Not a) (Not b) :=
+  Iff.intro
+    (fun na => na.imp Iff_ab.mpr)
+    (fun nb => nb.imp Iff_ab.mp)
 
-theorem not_not_not : Iff (Not (Not (Not a))) (Not a) := Iff.intro (mt not_not_intro) not_not_intro
+theorem not_not_not : Iff (Not (Not (Not a))) (Not a) :=
+  Iff.intro
+    (fun nnna => nnna.imp not_not_intro)
+    (fun na => not_not_intro na)
 
 theorem iff_def  : Iff (Iff a b) (And (a → b) (b → a)) := iff_iff_implies_and_implies
 theorem iff_def' : Iff (Iff a b) (And (b → a) (a → b)) := Iff.trans iff_def And.comm
@@ -495,19 +501,19 @@ inductive Bool : Type where
 
 export Bool (false true)
 
-theorem eq_false_of_ne_true {b : Bool} (Not_Eq_b_true : Not (Eq b true)) : Eq b false :=
+theorem eq_false_of_ne_true {b : Bool} (neq_bt : Not (Eq b true)) : Eq b false :=
   match b with
   | false => Eq.refl false
   | true  =>
-    have Eq_true_true : Eq true true := Eq.refl true
-    absurd Eq_true_true Not_Eq_b_true
+    have eq_tt : Eq true true := Eq.refl true
+    neq_bt.elim eq_tt
 
 theorem eq_true_of_ne_false {b : Bool} (Not_Eq_b_false : Not (Eq b false)) : Eq b true :=
   match b with
   | true  => Eq.refl true
   | false =>
     have Eq_false_false : Eq false false := Eq.refl false
-    absurd Eq_false_false Not_Eq_b_false
+    Not_Eq_b_false.elim Eq_false_false
 
 def Eq.Root {α : Sort u} {a b : α } (Eq_ab : Eq a b) : _root_.Eq a b :=
   match Eq_ab with
@@ -612,7 +618,7 @@ theorem Nat.ne_of_beq_eq_false {n m : Nat} (Eq_beq_nm_false : Eq (beq n m) false
   | succ _, zero   => fun Eq_nm => Nat.noConfusion Eq_nm.Root
   | succ n, succ m => fun Eq_nm =>
     have Not_Eq_nm : Not (Eq n m) := ne_of_beq_eq_false Eq_beq_nm_false
-    Nat.noConfusion Eq_nm.Root (fun RootEq_nm => absurd (Eq.FromRoot RootEq_nm) Not_Eq_nm)
+    Nat.noConfusion Eq_nm.Root (fun RootEq_nm => Not_Eq_nm.elim (Eq.FromRoot RootEq_nm))
 
 protected inductive Nat.le (n : Nat) : Nat → Prop
   | refl     : Nat.le n n
@@ -665,7 +671,7 @@ theorem Nat.le_of_succ_le_succ {n m : Nat} : LE.le (succ n) (succ m) → LE.le n
 
 theorem Nat.not_succ_le_self : (n : Nat) → Not (LE.le (succ n) n)
   | zero   => not_succ_le_zero _
-  | succ n => fun Le_succ_n_n => absurd (le_of_succ_le_succ Le_succ_n_n) (not_succ_le_self n)
+  | succ n => fun Le_succ_n_n => (not_succ_le_self n).elim (le_of_succ_le_succ Le_succ_n_n)
 
 def Nat.ble : Nat → Nat → Bool
   | zero,   _      => true
