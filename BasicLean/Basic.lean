@@ -347,44 +347,53 @@ https://leanprover.github.io/theorem_proving_in_lean4/Propositions-and-Proofs/#e
 -/
 
 -- p and q iff q and p
--- p ∧ q ↔ q ∧ p
+-- ⊢ p ∧ q ↔ q ∧ p
 example : Iff (And p q) (And q p) :=
   Iff.intro
     (fun and_pq => And.intro and_pq.right and_pq.left)
     (fun and_qp => And.intro and_qp.right and_qp.left)
 
 -- p or q iff q or p
--- p ∨ q ↔ q ∨ p
+-- ⊢ p ∨ q ↔ q ∨ p
 example : Iff (Or p q) (Or q p) :=
   Iff.intro
-    (fun Or_pq => Or_pq.elim
+    (fun or_pq => or_pq.elim
       (fun hp => Or.intro_right q hp)
       (fun hq => Or.intro_left p hq))
-    (fun Or_qp => Or_qp.elim
+    (fun or_qp => or_qp.elim
       (fun hq => Or.intro_right p hq)
       (fun hp => Or.intro_left q hp))
 
--- (p ∧ q) ∧ r ↔ p ∧ (q ∧ r)
+-- (p and q) and r iff p and (q and r)
+-- ⊢ (p ∧ q) ∧ r ↔ p ∧ (q ∧ r)
 example : Iff (And (And p q) r) (And p (And q r)) :=
   Iff.intro
-    (fun And_pq_r => And.intro And_pq_r.left.left (And.intro And_pq_r.left.right And_pq_r.right))
-    (fun And_p_qr => And.intro (And.intro And_p_qr.left And_p_qr.right.left) And_p_qr.right.right)
+    (fun and_pq_r =>
+      And.intro
+        and_pq_r.left.left
+        (And.intro and_pq_r.left.right and_pq_r.right))
+    (fun and_p_qr =>
+      And.intro
+        (And.intro and_p_qr.left and_p_qr.right.left)
+        and_p_qr.right.right)
 
--- (p ∨ q) ∨ r ↔ p ∨ (q ∨ r)
+-- (p or q) or r iff p or (q or r)
+-- ⊢ (p ∨ q) ∨ r ↔ p ∨ (q ∨ r)
 example : Iff (Or (Or p q) r) (Or p (Or q r)) :=
   Iff.intro
-    (fun Or_pq_r => Or_pq_r.elim
-      (fun Or_pq => Or_pq.elim
+    (fun or_pq_r => or_pq_r.elim
+      (fun or_pq => or_pq.elim
         (fun hp => Or.intro_left (Or q r) hp)
         (fun hq => Or.intro_right p (Or.intro_left r hq)))
       (fun hr => Or.intro_right p (Or.intro_right q hr)))
-    (fun Or_p_qr => Or_p_qr.elim
+    (fun or_p_qr => or_p_qr.elim
       (fun hp => Or.intro_left r (Or.intro_left q hp))
-      (fun Or_qr => Or_qr.elim
+      (fun or_qr => or_qr.elim
         (fun hq => Or.intro_left r (Or.intro_right p hq))
         (fun hr => Or.intro_right (Or p q) hr)))
 
--- p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r)
+-- p and (q or r) iff (p and q) or (p and r)
+-- ⊢ p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r)
 example : Iff (And p (Or q r)) (Or (And p q) (And p r)) :=
   Iff.intro
     (fun p_qr => p_qr.right.elim
@@ -394,25 +403,32 @@ example : Iff (And p (Or q r)) (Or (And p q) (And p r)) :=
       (fun pq => And.intro pq.left (Or.intro_left r pq.right))
       (fun pr => And.intro pr.left (Or.intro_right q pr.right)))
 
--- p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r)
+-- p or (q and r) iff (p or q) and (q or r)
+-- ⊢ p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r)
 example : Iff (Or p (And q r)) (And (Or p q) (Or p r)) :=
   Iff.intro
     (fun p_qr => p_qr.elim
-      (fun hp => And.intro (Or.intro_left q hp) (Or.intro_left r hp))
-      (fun qr => And.intro (Or.intro_right p qr.left) (Or.intro_right p qr.right)))
+      (fun hp => And.intro
+        (Or.intro_left q hp)
+        (Or.intro_left r hp))
+      (fun qr => And.intro
+        (Or.intro_right p qr.left)
+        (Or.intro_right p qr.right)))
     (fun pq_pr => pq_pr.left.elim
       (fun hp => Or.intro_left (And q r) hp)
       (fun hq => pq_pr.right.elim
         (fun hp => Or.intro_left (And q r) hp)
         (fun hr => Or.intro_right p (And.intro hq hr))))
 
--- (p → (q → r)) ↔ (p ∧ q → r)
+-- (p implies (q implies r)) iff (p and q implies r)
+-- ⊢ (p → (q → r)) ↔ (p ∧ q → r)
 example : Iff (p → (q → r)) (And p q → r) :=
   Iff.intro
     (fun pqr => fun pq => pqr pq.left pq.right)
     (fun pq_r => fun hp => fun hq => pq_r (And.intro hp hq))
 
--- ((p ∨ q) → r) ↔ (p → r) ∧ (q → r)
+-- ((p or q) implies r) iff (p implies r) and (q implies r)
+-- ⊢ ((p ∨ q) → r) ↔ (p → r) ∧ (q → r)
 example : Iff (Or p q → r) (And (p → r) (q → r)) :=
   Iff.intro
     (fun pq_r => And.intro
@@ -422,7 +438,8 @@ example : Iff (Or p q → r) (And (p → r) (q → r)) :=
       (fun hp => pr_qr.left hp)
       (fun hq => pr_qr.right hq))
 
--- ¬(p ∨ q) ↔ ¬p ∧ ¬q
+-- not (p or q) iff not p and not q
+-- ⊢ ¬(p ∨ q) ↔ ¬p ∧ ¬q
 example : Iff (Not (Or p q)) (And (Not p) (Not q)) :=
   Iff.intro
     (fun npq => And.intro
@@ -432,31 +449,37 @@ example : Iff (Not (Or p q)) (And (Not p) (Not q)) :=
       (fun hp => np_nq.left hp)
       (fun hq => np_nq.right hq))
 
--- ¬p ∨ ¬q → ¬(p ∧ q)
+-- not p or not q implies not (p and q)
+-- ⊢ ¬p ∨ ¬q → ¬(p ∧ q)
 example : (Or (Not p) (Not q) → Not (And p q)) :=
   fun np_nq => np_nq.elim
     (fun np => fun pq => np pq.left)
     (fun nq => fun pq => nq pq.right)
 
--- ¬(p ∧ ¬p)
+-- not (p and not p)
+-- ⊢ ¬(p ∧ ¬p)
 example : Not (And p (Not p)) :=
   fun p_np => p_np.right p_np.left
 
--- p ∧ ¬q → ¬(p → q)
+-- p and not q implies not (p implies q)
+-- ⊢ p ∧ ¬q → ¬(p → q)
 example : And p (Not q) → Not (p → q) :=
   fun p_nq => fun pq => p_nq.right (pq p_nq.left)
 
--- ¬p → (p → q)
+-- not p implies (p implies q)
+-- ⊢ ¬p → (p → q)
 example : Not p → (p → q) :=
   fun np => fun p => (np p).elim
 
--- (¬p ∨ q) → (p → q)
+-- (not p or q) implies (p implies q)
+-- ⊢ (¬p ∨ q) → (p → q)
 example : Or (Not p) q → (p → q) :=
   fun np_q => fun hp => np_q.elim
     (fun np => (np hp).elim)
     (fun hq => hq)
 
--- p ∨ False ↔ p
+-- p or false implies p
+-- ⊢ p ∨ False ↔ p
 example : Iff (Or p False) p :=
   Iff.intro
     (fun pf => pf.elim
@@ -464,19 +487,22 @@ example : Iff (Or p False) p :=
       (fun false => false.elim))
     (fun hp => Or.intro_left False hp)
 
--- p ∧ False ↔ False
+-- p and false iff false
+-- ⊢ p ∧ False ↔ False
 example : Iff (And p False) False :=
   Iff.intro
     (fun pf => pf.right)
     (fun false => false.elim)
 
--- ¬(p ↔ ¬p)
+-- not (p iff not p)
+-- ⊢ ¬(p ↔ ¬p)
 example : Not (Iff p (Not p)) :=
   fun p_np =>
     have np := fun hp => (p_np.mp hp) hp
     np (p_np.mpr np)
 
--- (p → q) → (¬q → ¬p)
+-- (p implies q) implies (not q implies not p)
+-- ⊢ (p → q) → (¬q → ¬p)
 example : (p → q) → (Not q → Not p) :=
   fun pq => fun nq => fun hp => nq (pq hp)
 
