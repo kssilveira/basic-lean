@@ -34,7 +34,7 @@ example (false : False) : a := false.elim
 -- false implies a
 -- ⊢ ⊥ → a
 example : False → a :=
-  fun false => false.elim
+  fun false => show a from false.elim
 
 /- Not -/
 
@@ -70,7 +70,7 @@ theorem Not.imp
 -- ¬a, a ⊢ b
 def Not.elim (na : Not a) (ha : a) : b :=
   have false : False := na ha
-  false.elim
+  show b from false.elim
 
 -- a proves not a implies b
 -- a ⊢ ¬a → b
@@ -80,9 +80,9 @@ example (ha : a) : Not a → b :=
 -- a implies not a implies b
 -- ⊢ a → ¬a → b
 example : a → Not a → b :=
-  fun ha => fun na => na.elim ha
+  fun ha => fun na => show b from na.elim ha
 example : a → Not a → b :=
-  fun ha na => na.elim ha
+  fun ha na => show b from na.elim ha
 
 -- a implies false
 --   proves not a
@@ -105,7 +105,10 @@ theorem imp_intro {a : Prop}
 theorem imp_imp_imp {d : Prop}
     (ca : c → a) (bd : b → d) :
       (a → b) → (c → d) :=
-  fun ab => fun hc => bd (ab (ca hc))
+  fun ab => fun hc =>
+    have ha : a := ca hc
+    have hb : b := ab ha
+    show d from bd hb
 
 /- And -/
 
@@ -213,7 +216,7 @@ theorem Or.symm
     (or_ab : Or a b) : Or b a :=
   or_ab.elim
     (fun ha => Or.intro_right b ha)
-    (fun hb => Or.intro_left a hb)
+    (fun hb => Or.intro_left  a hb)
 
 -- a or b, not a
 --   proves b
